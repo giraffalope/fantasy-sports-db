@@ -1,4 +1,4 @@
-CREATE TABLE `seasons` (
+CREATE TABLE `nascar`.`seasons` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `series_id` BIGINT UNSIGNED NOT NULL,
     `year` INT UNSIGNED NOT NULL,

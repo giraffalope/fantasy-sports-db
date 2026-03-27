@@ -1,4 +1,4 @@
-CREATE TABLE `race_results` (
+CREATE TABLE `nascar`.`race_results` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `race_id` BIGINT UNSIGNED NOT NULL,
     `car_driver_id` BIGINT UNSIGNED NOT NULL,

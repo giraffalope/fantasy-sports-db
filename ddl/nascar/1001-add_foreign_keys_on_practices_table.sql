@@ -1,2 +1,2 @@
-ALTER TABLE `practices`
-    ADD CONSTRAINT `fk_practices_week_id` FOREIGN KEY (`week_id`) REFERENCES `weeks`(`id`) ON DELETE CASCADE;
+ALTER TABLE `nascar`.`practices`
+    ADD CONSTRAINT `fk_practices_week_id` FOREIGN KEY (`week_id`) REFERENCES `nascar`.`weeks`(`id`) ON DELETE CASCADE;

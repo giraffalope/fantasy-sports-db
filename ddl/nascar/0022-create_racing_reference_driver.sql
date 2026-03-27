@@ -1,4 +1,4 @@
-CREATE TABLE `racing_reference_drivers` (
+CREATE TABLE `nascar`.`racing_reference_drivers` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `driver_id` BIGINT UNSIGNED NOT NULL,
     `full_name` VARCHAR(255),

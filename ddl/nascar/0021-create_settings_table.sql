@@ -1,4 +1,4 @@
-CREATE TABLE `settings` (
+CREATE TABLE `nascar`.`settings` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(255) NOT NULL,
     `value` LONGTEXT NOT NULL,

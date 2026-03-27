@@ -1,4 +1,4 @@
-CREATE TABLE `cars_drivers` (
+CREATE TABLE `nascar`.`cars_drivers` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `car_id` BIGINT UNSIGNED NOT NULL,
     `driver_id` BIGINT UNSIGNED NOT NULL,

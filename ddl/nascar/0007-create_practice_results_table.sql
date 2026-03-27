@@ -1,10 +1,10 @@
-CREATE TABLE `practice_results` (
+CREATE TABLE `nascar`.`practice_results` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `practice_id` BIGINT UNSIGNED NOT NULL,
     `car_driver_id` BIGINT UNSIGNED NOT NULL,
     `finish_position` INT UNSIGNED NOT NULL,
     `best_speed` DECIMAL(8,3) UNSIGNED NULL,
-    `best_time` DECIMAL(8,3) NULL,
+    `best_time` TIME(3) NULL,
     `total_laps` INT UNSIGNED NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

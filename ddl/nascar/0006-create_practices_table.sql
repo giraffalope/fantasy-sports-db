@@ -1,4 +1,4 @@
-CREATE TABLE `practices` (
+CREATE TABLE `nascar`.`practices` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `week_id` BIGINT UNSIGNED NOT NULL,
     `number` INT UNSIGNED NOT NULL,

@@ -1,10 +1,10 @@
-CREATE TABLE `qualifying_results` (
+CREATE TABLE `nascar`.`qualifying_results` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `qualifying_id` BIGINT UNSIGNED NOT NULL,
     `car_driver_id` BIGINT UNSIGNED NOT NULL,
     `finish_position` INT UNSIGNED NOT NULL,
     `best_speed` DECIMAL(8,3) UNSIGNED NULL,
-    `best_time` DECIMAL(8,3) UNSIGNED NULL,
+    `best_time` TIME(3) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL

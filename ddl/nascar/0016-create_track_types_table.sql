@@ -1,4 +1,4 @@
-CREATE TABLE `track_types` (
+CREATE TABLE `nascar`.`track_types` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT DEFAULT NULL,

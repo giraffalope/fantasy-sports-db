@@ -1,2 +1,2 @@
-ALTER TABLE `seasons`
+ALTER TABLE `nascar`.`seasons`
   ADD UNIQUE KEY `unique_seasons_series_year` (`series_id`, `year`);

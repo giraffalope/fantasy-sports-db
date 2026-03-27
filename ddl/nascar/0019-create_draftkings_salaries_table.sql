@@ -1,4 +1,4 @@
-CREATE TABLE `draftkings_salaries` (
+CREATE TABLE `nascar`.`draftkings_salaries` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `draftkings_id` BIGINT UNSIGNED NOT NULL,
     `draftkings_driver_id` BIGINT UNSIGNED DEFAULT NULL,
