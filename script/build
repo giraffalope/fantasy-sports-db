@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+[ -z "${DEBUG}" ] || set -x
+
+BASEDIR="$(dirname "$0")/.."
+cd "${BASEDIR}"
+
+# Build the Docker image
+echo "Building Docker image..."
+docker build --no-cache "$@" -t fantasy-sports-db:latest .
+
+echo "Setup complete! Run './script/server' to start the database."

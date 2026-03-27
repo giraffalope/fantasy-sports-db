@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -e
+[ -z "${DEBUG}" ] || set -x
+
+BASEDIR="$(dirname "$0")/.."
+cd "${BASEDIR}"
+
+# Remove the Docker image
+echo "Removing fantasy-sports-db image..."
+docker image rm fantasy-sports-db:latest 2>/dev/null || true
+
+# Stop and remove any running containers
+echo "Stopping and removing fantasy-sports-db container..."
+docker stop fantasy-sports-db 2>/dev/null || true
+docker rm fantasy-sports-db 2>/dev/null || true
+
+echo "Cleanup complete!"

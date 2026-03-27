@@ -1,0 +1,65 @@
+#!/bin/sh
+
+set -e
+[ -z "${DEBUG}" ] || set -x
+
+BASEDIR="$(dirname "$0")/.."
+cd "${BASEDIR}"
+
+# Load environment variables from .env file
+if [ -f "$BASEDIR/.env" ]; then
+    set -a
+    . "$BASEDIR/.env"
+    set +a
+fi
+
+# Use variables from .env or environment, with fallback defaults
+DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-root}"
+DB_USER="${DB_USER:-username}"
+DB_PASSWORD="${DB_PASSWORD:-password}"
+
+cleanup() {
+    echo "Stopping MariaDB container..."
+    docker stop fantasy-sports-db 2>/dev/null || true
+    docker rm fantasy-sports-db 2>/dev/null || true
+    exit 0
+}
+
+main() {
+    trap cleanup INT TERM
+
+    ASCII_ART_FILE="script/utils/ascii-art.txt"
+    if [ -f "$BASEDIR/$ASCII_ART_FILE" ]; then
+        cat "$BASEDIR/$ASCII_ART_FILE"
+    fi
+    echo -e "\n"
+    
+    # Stop and remove any existing container
+    echo "Cleaning up any existing containers..."
+    docker stop fantasy-sports-db 2>/dev/null || true
+    docker rm fantasy-sports-db 2>/dev/null || true
+    
+    echo "Starting Fantasy Sports Database..."
+    docker run -d \
+        --name fantasy-sports-db \
+        -e MYSQL_ROOT_PASSWORD="$DB_ROOT_PASSWORD" \
+        -e MYSQL_USER="$DB_USER" \
+        -e MYSQL_PASSWORD="$DB_PASSWORD" \
+        -e MYSQL_DATABASE=nascar \
+        -p 3306:3306 \
+        fantasy-sports-db:latest
+    
+    echo "Database is running on localhost:3306"
+    echo "Database: nascar"
+    echo ""
+    echo "Credentials are configured via .env file"
+    echo "Press Ctrl+C to stop the server"
+    echo ""
+    
+    # Keep container running
+    docker logs -f fantasy-sports-db
+}
+
+main
+
+
