@@ -1,6 +1,5 @@
 CREATE TABLE `nascar`.`teams` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `rr_name` VARCHAR(255) NOT NULL,
     `name` VARCHAR(255),
     `description` TEXT DEFAULT NULL,
     `image` TEXT DEFAULT NULL,

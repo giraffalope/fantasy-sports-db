@@ -1,6 +1,5 @@
 CREATE TABLE `nascar`.`manufacturers` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `rr_name` VARCHAR(255) NOT NULL,
     `name` VARCHAR(255),
     `image` TEXT DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

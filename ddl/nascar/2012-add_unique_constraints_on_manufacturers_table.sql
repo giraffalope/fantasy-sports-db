@@ -1,3 +1,3 @@
 ALTER TABLE `nascar`.`manufacturers`
-  ADD UNIQUE KEY `unique_manufacturers_name` (`rr_name`);
+  ADD UNIQUE KEY `unique_manufacturers_name` (`name`);
   

@@ -1,7 +1,7 @@
-CREATE TABLE `nascar`.`racing_reference_drivers` (
+CREATE TABLE `nascar`.`racing_reference_manufacturers` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `driver_id` BIGINT UNSIGNED NOT NULL,
-    `full_name` VARCHAR(255),
+    `manufacturer_id` BIGINT UNSIGNED NULL,
+    `name` VARCHAR(255),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL
