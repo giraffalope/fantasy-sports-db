@@ -32,7 +32,7 @@ main() {
     if [ -f "$BASEDIR/$ASCII_ART_FILE" ]; then
         cat "$BASEDIR/$ASCII_ART_FILE"
     fi
-    echo -e "\n"
+    echo "\n"
     
     # Stop and remove any existing container
     echo "Cleaning up any existing containers..."

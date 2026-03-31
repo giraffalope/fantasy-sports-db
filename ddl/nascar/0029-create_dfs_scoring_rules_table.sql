@@ -1,7 +1,9 @@
-CREATE TABLE `nascar`.`racing_reference_manufacturers` (
+CREATE TABLE `nascar`.`dfs_scoring_rules` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `manufacturer_id` BIGINT UNSIGNED NULL,
+    `dfs_id` BIGINT UNSIGNED NULL,
     `name` VARCHAR(255),
+    `version` INT UNSIGNED NOT NULL,
+    `rules` JSON NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL

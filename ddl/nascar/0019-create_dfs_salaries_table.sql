@@ -1,7 +1,8 @@
-CREATE TABLE `nascar`.`draftkings_salaries` (
+CREATE TABLE `nascar`.`dfs_salaries` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `draftkings_id` BIGINT UNSIGNED NOT NULL,
-    `draftkings_driver_id` BIGINT UNSIGNED DEFAULT NULL,
+    `dfs_id` BIGINT UNSIGNED NOT NULL,
+    `race_id` BIGINT UNSIGNED NOT NULL,
+    `dfs_driver_id` BIGINT UNSIGNED DEFAULT NULL,
     `car_driver_id` BIGINT UNSIGNED NOT NULL,
     `salary` INT UNSIGNED DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
