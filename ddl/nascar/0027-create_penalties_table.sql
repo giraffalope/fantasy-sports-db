@@ -3,7 +3,7 @@ CREATE TABLE `nascar`.`penalties` (
     `race_id` BIGINT UNSIGNED NOT NULL,
     `car_driver_id` BIGINT UNSIGNED NOT NULL,
     `lap` INT UNSIGNED NOT NULL,
-    `flag` ENUM('GREEN', 'YELLOW', 'WHITE', 'CHECKERED') NOT NULL,
+    `flag` ENUM('GREEN', 'YELLOW', 'WHITE', 'CHECKERED'),
     `description` TEXT NULL,
     `penalty` VARCHAR(255) NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
