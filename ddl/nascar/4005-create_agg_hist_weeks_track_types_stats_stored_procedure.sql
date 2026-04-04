@@ -1,11 +1,11 @@
 DELIMITER //
 
-CREATE PROCEDURE `nascar`.`hist_weeks_track_types_stats`(
-    IN `r_series_id` INTEGER UNSIGNED,
-    IN `r_season_id` INTEGER UNSIGNED,
-    IN `r_week_id` TINYINT UNSIGNED
+CREATE PROCEDURE `nascar`.`agg_hist_weeks_track_types_stats`(
+    IN `r_series_id` BIGINT UNSIGNED,
+    IN `r_season_id` BIGINT UNSIGNED,
+    IN `r_week_id` BIGINT UNSIGNED
 )
-COMMENT 'Historical statistics for a specific race week''s track types in the NASCAR series, including practices, qualifying, race results, as well as penalties and pitstops.'
+COMMENT 'Aggregated historical statistics for a specific race week''s track types in the NASCAR series, including practices, qualifying, race results, as well as penalties and pitstops. It does not include the race week specified, but any data before the race week.'
 BEGIN
     WITH 
     series AS (
@@ -24,45 +24,36 @@ BEGIN
         WHERE ss.deleted_at IS NULL
             AND ss.id = r_season_id
     ),
-    weeks AS (
+    current_week AS (
         SELECT DISTINCT
-            s.series_id,
-            s.season_id,
+            sr.series_id,
+            ss.id AS season_id,
+            ss.year AS season_year,
             w.id AS week_id,
-            w.track_id AS track_id
+            w.number AS week_number,
+            w.scheduled_start AS week_scheduled_start
         FROM nascar.weeks w
-        JOIN seasons s USING (series_id, season_id)
+        JOIN seasons ss USING (season_id)
+        JOIN series sr USING (series_id)
         WHERE w.deleted_at IS NULL
-            AND w.id = r_week_id
-    ),
-    tracks AS (
-        SELECT DISTINCT
-            w.series_id,
-            w.season_id,
-            w.week_id,
-            w.track_id,
-            t.track_type_id AS track_type_id
-        FROM nascar.tracks t
-        JOIN weeks w USING (track_id)
-        JOIN seasons s USING (series_id, season_id)
-        WHERE t.deleted_at IS NULL
+            AND w.number = r_week_id
     ),
     track_types_weeks AS (
         SELECT DISTINCT
-            w.series_id,
+            s.series_id,
             w.season_id,
-            w.week_id,
+            w.id AS week_id,
             w.track_id,
-            t.track_type_id
-        FROM nascar.track_types t
-        JOIN tracks tr USING (track_type_id)
-        JOIN seasons s USING (series_id, season_id)
-        JOIN weeks w USING (series_id, season_id, week_id)
-        WHERE t.deleted_at IS NULL
-            AND tr.deleted_at IS NULL
-            AND w.deleted_at IS NULL
-            AND w.number < r_week_id
-    ),
+            trk.track_type_id
+        FROM nascar.weeks w
+        LEFT JOIN current_week cw USING (series_id)
+        JOIN seasons s ON s.season_id = w.season_id
+        JOIN nascar.tracks trk ON trk.id = w.track_id AND trk.deleted_at IS NULL
+        JOIN nascar.track_types tt ON tt.id = trk.track_type_id AND tt.deleted_at IS NULL
+        WHERE w.deleted_at IS NULL
+            AND w.number < cw.week_number
+            AND s.year <= cw.season_year
+    )
     SELECT
         hws.series_id as series_id,
         hws.season_id as season_id,
@@ -155,6 +146,7 @@ BEGIN
         hws.practice_final_10_lap_end
     FROM track_types_weeks ttw
     JOIN nascar.hist_weeks_stats hws USING (series_id, season_id, week_id, track_id)
+    WHERE hws.deleted_at IS NULL
     ;
 END //
 

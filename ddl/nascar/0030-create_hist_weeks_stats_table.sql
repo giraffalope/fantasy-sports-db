@@ -4,11 +4,11 @@
 -- is enforced in 2023-add_unique_constraints_on_hist_weeks_stats_table.sql.
 CREATE TABLE `nascar`.`hist_weeks_stats` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `series_id` BIGINT UNSIGNED NOT NULL,
-    `season_id` BIGINT UNSIGNED NOT NULL,
-    `week_id` BIGINT UNSIGNED NOT NULL,
-    `track_id` BIGINT UNSIGNED NOT NULL,
-    `race_id` BIGINT UNSIGNED NOT NULL,
+    `series_id` BIGINT UNSIGNED NOT NULL COMMENT 'Foreign key to nascar.series, indicating the series for which this historical week''s statistics apply.',
+    `season_id` BIGINT UNSIGNED NOT NULL COMMENT 'Foreign key to nascar.seasons, indicating the season for which this historical week''s statistics apply.',
+    `week_id` BIGINT UNSIGNED NOT NULL COMMENT 'Foreign key to nascar.weeks, indicating the week for which this historical week''s statistics apply.',
+    `track_id` BIGINT UNSIGNED NOT NULL COMMENT 'Foreign key to nascar.tracks, indicating the track for which this historical week''s statistics apply.',
+    `race_id` BIGINT UNSIGNED NOT NULL COMMENT 'Foreign key to nascar.races, indicating the race for which this historical week''s statistics apply.',
     `car_driver_id` BIGINT UNSIGNED NOT NULL,
     `car_id` BIGINT UNSIGNED NOT NULL,
     `manufacturer_id` BIGINT UNSIGNED NOT NULL,

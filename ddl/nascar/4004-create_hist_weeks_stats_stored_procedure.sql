@@ -1,9 +1,9 @@
 DELIMITER //
 
 CREATE PROCEDURE `nascar`.`hist_weeks_stats`(
-    IN `r_series_id` INTEGER UNSIGNED,
-    IN `r_season_id` INTEGER UNSIGNED,
-    IN `r_week_id` TINYINT UNSIGNED
+    IN `r_series_id` BIGINT UNSIGNED,
+    IN `r_season_id` BIGINT UNSIGNED,
+    IN `r_week_id` BIGINT UNSIGNED
 )
 COMMENT 'Aggregate statistics for a specific race week in the NASCAR series, including practices, qualifying, race results, as well as penalties and pitstops.'
 BEGIN
