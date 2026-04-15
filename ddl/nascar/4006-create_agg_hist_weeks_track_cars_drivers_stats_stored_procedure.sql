@@ -21,23 +21,27 @@ BEGIN
         LIMIT 1
     ),
     prev_week_ids AS (
-        SELECT w.id AS week_id
-        FROM nascar.weeks w
-        CROSS JOIN ctx
-        WHERE w.season_id = r_season_id
-            AND w.deleted_at IS NULL
-            AND w.track_id = ctx.track_id
-            AND w.number < ctx.week_number
-            AND EXISTS (
-                SELECT 1
-                FROM nascar.week_results wr
-                WHERE wr.series_id = r_series_id
-                    AND wr.season_id = r_season_id
-                    AND wr.week_id = w.id
-                    AND wr.deleted_at IS NULL
-            )
-        ORDER BY w.number DESC
-        LIMIT CASE WHEN r_num_prev < 0 THEN 2147483647 ELSE r_num_prev END
+        SELECT week_id
+        FROM (
+            SELECT
+                w.id AS week_id,
+                ROW_NUMBER() OVER (ORDER BY w.number DESC) AS rn
+            FROM nascar.weeks w
+            CROSS JOIN ctx
+            WHERE w.season_id = r_season_id
+                AND w.deleted_at IS NULL
+                AND w.track_id = ctx.track_id
+                AND w.number < ctx.week_number
+                AND EXISTS (
+                    SELECT 1
+                    FROM nascar.week_results wr
+                    WHERE wr.series_id = r_series_id
+                        AND wr.season_id = r_season_id
+                        AND wr.week_id = w.id
+                        AND wr.deleted_at IS NULL
+                )
+        ) ranked
+        WHERE r_num_prev < 0 OR rn <= r_num_prev
     )
     SELECT
         r_series_id AS series_id,
