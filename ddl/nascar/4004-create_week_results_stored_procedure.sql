@@ -33,7 +33,7 @@ BEGIN
             w.id AS week_id,
             w.track_id AS track_id
         FROM nascar.weeks w
-        JOIN seasons s USING (series_id, season_id)
+        JOIN seasons s USING (season_id)
         WHERE w.deleted_at IS NULL
             AND w.id = r_week_id
     ),
@@ -44,7 +44,7 @@ BEGIN
             w.week_id,
             t.id AS track_id
         FROM nascar.tracks t
-        JOIN weeks w USING (track_id)
+        JOIN weeks w ON t.id = w.track_id
         WHERE t.deleted_at IS NULL
     ),
     weeks_practices AS (
@@ -56,7 +56,7 @@ BEGIN
             p.id AS practice_id,
             p.number AS practice_number
         FROM nascar.practices p
-        JOIN tracks t USING (series_id, season_id, week_id, track_id)
+        JOIN tracks t USING (week_id)
         WHERE p.deleted_at IS NULL
     ),
     weeks_qualifyings AS (
@@ -67,7 +67,7 @@ BEGIN
             t.track_id,
             q.id AS qualifying_id
         FROM nascar.qualifyings q
-        JOIN tracks t USING (series_id, season_id, week_id, track_id)
+        JOIN tracks t USING (week_id)
         WHERE q.deleted_at IS NULL
     ),
     weeks_races AS (
@@ -78,7 +78,7 @@ BEGIN
             t.track_id,
             r.id AS race_id
         FROM nascar.races r
-        JOIN tracks t USING (series_id, season_id, week_id, track_id)
+        JOIN tracks t USING (week_id)
         WHERE r.deleted_at IS NULL
     ),
     weeks_races_penalties AS (
@@ -91,28 +91,58 @@ BEGIN
             pn.car_driver_id,
             count(*) AS total_penalties
         FROM nascar.penalties pn
-        JOIN weeks_races r USING (race_id, car_driver_id)
+        JOIN weeks_races r USING (race_id)
         WHERE pn.deleted_at IS NULL
         GROUP BY r.series_id, r.season_id, r.week_id, r.track_id, r.race_id, pn.car_driver_id
     ),
     weeks_races_pitstops AS (
+		SELECT
+            p.car_driver_id AS car_driver_id,
+            p.crew_time,
+            p.driver_time,
+            p.type
+        FROM nascar.pitstops p
+        JOIN weeks_races r USING (race_id)
+        WHERE p.deleted_at IS NULL
+    ),
+    weeks_races_pitstops_totals AS (
         SELECT
-            r.series_id,
-            r.season_id,
-            r.week_id,
-            r.track_id,
-            r.race_id,
-            pt.car_driver_id AS car_driver_id,
-            SUM(pt.crew_time) AS sum_pitstop_crew_time,
-            ROUND(AVG(pt.crew_time), 3) AS avg_pitstop_crew_time,
-            SUM(pt.driver_time) AS sum_pitstop_driver_time,
-            ROUND(AVG(pt.driver_time), 3) AS avg_pitstop_driver_time,
-            SUM(pt.crew_time) + SUM(pt.driver_time) AS sum_pitstop_total_time,
+            wrp.car_driver_id,
+            ROUND(AVG(wrp.crew_time), 3) AS avg_pitstop_crew_time,
+            ROUND(AVG(wrp.driver_time), 3) AS avg_pitstop_driver_time,
             COUNT(*) AS total_pitstops
-        FROM nascar.pitstops pt
-        JOIN weeks_races r USING (race_id, car_driver_id)
-        WHERE pt.deleted_at IS NULL
-        GROUP BY r.series_id, r.season_id, r.week_id, r.track_id, r.race_id, pt.car_driver_id
+        FROM weeks_races_pitstops wrp
+        GROUP BY wrp.car_driver_id
+    ),
+    weeks_races_pitstops_4_totals AS (
+        SELECT
+            wrp.car_driver_id,
+            ROUND(AVG(wrp.crew_time), 3) AS avg_4_pitstop_crew_time,
+            ROUND(AVG(wrp.driver_time), 3) AS avg_4_pitstop_driver_time,
+            COUNT(*) AS total_4_pitstops
+        FROM weeks_races_pitstops wrp
+        WHERE wrp.type = 'FOUR_WHEEL_CHANGE'
+        GROUP BY wrp.car_driver_id
+    ),
+	weeks_races_pitstops_2l_totals AS (
+        SELECT
+            wrp.car_driver_id,
+            ROUND(AVG(wrp.crew_time), 3) AS avg_2l_pitstop_crew_time,
+            ROUND(AVG(wrp.driver_time), 3) AS avg_2l_pitstop_driver_time,
+            COUNT(*) AS total_2l_pitstops
+        FROM weeks_races_pitstops wrp
+        WHERE wrp.type = 'TWO_WHEEL_CHANGE_LEFT'
+        GROUP BY wrp.car_driver_id
+    ),
+	weeks_races_pitstops_2r_totals AS (
+        SELECT
+            wrp.car_driver_id,
+            ROUND(AVG(wrp.crew_time), 3) AS avg_2r_pitstop_crew_time,
+            ROUND(AVG(wrp.driver_time), 3) AS avg_2r_pitstop_driver_time,
+            COUNT(*) AS total_2r_pitstops
+        FROM weeks_races_pitstops wrp
+        WHERE wrp.type = 'TWO_WHEEL_CHANGE_RIGHT'
+        GROUP BY wrp.car_driver_id
     ),
     weeks_practices_results AS (
         SELECT DISTINCT
@@ -140,7 +170,7 @@ BEGIN
             pr.10_lap_start,
             pr.10_lap_end
         FROM nascar.practice_results pr
-        JOIN weeks_practices wp USING (practice_id, car_driver_id)
+        JOIN weeks_practices wp USING (practice_id)
         JOIN nascar.cars_drivers cd ON cd.id = pr.car_driver_id AND cd.deleted_at IS NULL
         JOIN nascar.cars c ON c.id = cd.car_id AND c.deleted_at IS NULL
         JOIN nascar.manufacturers m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
@@ -152,19 +182,15 @@ BEGIN
             AND pr.total_laps IS NOT NULL
             AND pr.total_laps > 0
     ),
-    weeks_practices_results_total AS (
+    weeks_practices_results_final AS (
         SELECT *
-        FROM (
-            SELECT *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY series_id, season_id, week_id, track_id 
-                    ORDER BY practice_number DESC
-                ) AS rnk
+        FROM weeks_practices_results
+        JOIN (
+            SELECT MAX(practice_number) as practice_number
             FROM weeks_practices_results
-        ) ranked
-        WHERE rnk = 1
+        ) fp USING (practice_number)
     ),
-    weeks_practices_results_average AS (
+    weeks_practices_results_total AS (
         SELECT
             series_id,
             season_id,
@@ -224,7 +250,7 @@ BEGIN
             wq.week_id,
             wq.track_id,
             wq.qualifying_id,
-            pr.car_driver_id,
+            qr.car_driver_id,
             c.id AS car_id,
             m.id AS manufacturer_id,
             t.id AS team_id,
@@ -233,7 +259,7 @@ BEGIN
             qr.best_speed,
             qr.best_time
         FROM nascar.qualifying_results qr
-        JOIN weeks_qualifyings wq USING (qualifying_id, car_driver_id)
+        JOIN weeks_qualifyings wq USING (qualifying_id)
         JOIN nascar.cars_drivers cd ON cd.id = qr.car_driver_id AND cd.deleted_at IS NULL
         JOIN nascar.cars c ON c.id = cd.car_id AND c.deleted_at IS NULL
         JOIN nascar.manufacturers m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
@@ -243,6 +269,14 @@ BEGIN
             AND qr.finish_position IS NOT NULL
             AND qr.best_speed IS NOT NULL
             AND qr.best_time IS NOT NULL
+    ),
+    weeks_race_results_max AS (
+		SELECT 
+			rr.race_id, 
+			MAX(total_laps_completed) AS total_laps_completed
+        FROM nascar.race_results rr
+        JOIN  weeks_races wr USING (race_id)
+        GROUP BY rr.race_id
     ),
     weeks_race_results AS (
         SELECT
@@ -267,32 +301,46 @@ BEGIN
             rr.quality_passes,
             ROUND(rr.quality_passes / rr.green_flag_passes, 3) AS quality_passes_pct,
             rr.total_fastest_laps,
-            ROUND(rr.total_fastest_laps / MAX(rr.total_laps_completed), 3) AS total_fastest_laps_pct,
+            ROUND(rr.total_fastest_laps / rrm.total_laps_completed, 3) AS total_fastest_laps_pct,
             rr.total_top_15_laps,
-            ROUND(rr.total_top_15_laps / MAX(rr.total_laps_completed), 3) AS total_top_15_laps_pct,
+            ROUND(rr.total_top_15_laps / rrm.total_laps_completed, 3) AS total_top_15_laps_pct,
             rr.total_laps_led,
-            ROUND(rr.total_laps_led / MAX(rr.total_laps_completed), 3) AS total_laps_led_pct,
+            ROUND(rr.total_laps_led / rrm.total_laps_completed, 3) AS total_laps_led_pct,
             rr.total_laps_completed,
-            ROUND(rr.total_laps_completed / MAX(rr.total_laps_completed), 3) AS total_laps_completed_pct,
+            ROUND(rr.total_laps_completed / rrm.total_laps_completed, 3) AS total_laps_completed_pct,
             rr.driver_rating,
             rr.car_status,
             pt.avg_pitstop_crew_time,
             pt.avg_pitstop_driver_time,
             pt.total_pitstops,
-            pn.total_penalties,
-            MAX(rr.total_laps_completed) AS total_race_laps,
-            MAX(rr.total_laps_completed) * tr.track_length AS total_race_miles
+            pt4.avg_4_pitstop_crew_time,
+            pt4.avg_4_pitstop_driver_time,
+            pt4.total_4_pitstops,
+			pt2l.avg_2l_pitstop_crew_time,
+            pt2l.avg_2l_pitstop_driver_time,
+            pt2l.total_2l_pitstops,
+			pt2r.avg_2r_pitstop_crew_time,
+            pt2r.avg_2r_pitstop_driver_time,
+            pt2r.total_2r_pitstops,
+            IFNULL(pn.total_penalties, 0) AS total_penalties,
+            rrm.total_laps_completed AS total_race_laps,
+            rrm.total_laps_completed * tr.length AS total_race_miles
         FROM nascar.race_results rr
-        JOIN weeks_races wr USING (race_id, car_driver_id)
-        JOIN nascar.cars_drivers cd ON cd.id = rr.car_driver_id AND cd.deleted_at IS NULL
+        JOIN weeks_races wr USING (race_id)
+        JOIN weeks_race_results_max rrm USING (race_id)
+		JOIN nascar.cars_drivers cd ON cd.id = rr.car_driver_id AND cd.deleted_at IS NULL
         JOIN nascar.cars c ON c.id = cd.car_id AND c.deleted_at IS NULL
         JOIN nascar.manufacturers m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
         JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
         JOIN nascar.drivers d ON d.id = cd.driver_id AND d.deleted_at IS NULL
-        LEFT JOIN pitstops pt USING (series_id, season_id, week_id, track_id, race_id, car_driver_id)
-        LEFT JOIN penalties pn USING (series_id, season_id, week_id, track_id, race_id, car_driver_id)
+        JOIN nascar.tracks tr ON wr.track_id = tr.id AND tr.deleted_at IS NULL
+        LEFT JOIN weeks_races_pitstops_totals pt USING (car_driver_id)
+		LEFT JOIN weeks_races_pitstops_4_totals pt4 USING (car_driver_id)
+        LEFT JOIN weeks_races_pitstops_2l_totals pt2l USING (car_driver_id)
+		LEFT JOIN weeks_races_pitstops_2r_totals pt2r USING (car_driver_id)
+        LEFT JOIN weeks_races_penalties pn USING (car_driver_id)
         WHERE rr.deleted_at IS NULL
-            AND rr.finish_position IS NOT NULL
+           AND rr.finish_position IS NOT NULL
     )
     SELECT
         rr.series_id as series_id,
@@ -328,6 +376,15 @@ BEGIN
         rr.avg_pitstop_crew_time as r_avg_pitstop_crew_time,
         rr.avg_pitstop_driver_time as r_avg_pitstop_driver_time,
         rr.total_pitstops as r_total_pitstops,
+		rr.avg_4_pitstop_crew_time as r_avg_4_pitstop_crew_time,
+        rr.avg_4_pitstop_driver_time as r_avg_4_pitstop_driver_time,
+        rr.total_4_pitstops as r_total_4_pitstops,
+		rr.avg_2l_pitstop_crew_time as r_avg_2l_pitstop_crew_time,
+        rr.avg_2l_pitstop_driver_time as r_avg_2l_pitstop_driver_time,
+        rr.total_2l_pitstops as r_total_2l_pitstops,
+		rr.avg_2r_pitstop_crew_time as r_avg_2r_pitstop_crew_time,
+        rr.avg_2r_pitstop_driver_time as r_avg_2r_pitstop_driver_time,
+        rr.total_2r_pitstops as r_total_2r_pitstops,
         rr.total_penalties as r_total_penalties,
         rr.total_race_laps as r_total_race_laps,
         rr.total_race_miles as r_total_race_miles,
@@ -384,9 +441,9 @@ BEGIN
         prf.10_lap_start as pf_10_lap_start,
         prf.10_lap_end as pf_10_lap_end
     FROM weeks_race_results rr
-    LEFT JOIN weeks_qualifying_results qr USING (series_id, season_id, week_id, track_id, track_type_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
-    LEFT JOIN weeks_practices_results_total prt USING (series_id, season_id, week_id, track_id, track_type_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
-    LEFT JOIN weeks_practices_results_final prf USING (series_id, season_id, week_id, track_id, track_type_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
+    LEFT JOIN weeks_qualifying_results qr USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
+    LEFT JOIN weeks_practices_results_total prt USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
+    LEFT JOIN weeks_practices_results_final prf USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
     ;
 END //
 

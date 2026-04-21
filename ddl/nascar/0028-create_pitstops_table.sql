@@ -5,8 +5,8 @@ CREATE TABLE `nascar`.`pitstops` (
     `leader_lap` INT UNSIGNED NOT NULL,
     `driver_lap` INT UNSIGNED NOT NULL,
     `type` ENUM('FOUR_WHEEL_CHANGE', 'TWO_WHEEL_CHANGE_RIGHT', 'TWO_WHEEL_CHANGE_LEFT') NOT NULL,
-    `stop_time` TIME NOT NULL,
-    `driver_time` TIME NOT NULL,
+    `crew_time` TIME(3) NOT NULL,
+    `driver_time` TIME(3) NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL
