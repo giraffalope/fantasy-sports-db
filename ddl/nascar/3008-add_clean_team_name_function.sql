@@ -1,0 +1,10 @@
+DELIMITER //
+
+CREATE OR REPLACE FUNCTION clean_team_name(team_name VARCHAR(255))
+RETURNS VARCHAR(255)
+DETERMINISTIC
+BEGIN
+    RETURN clean_name(team_name);
+END //
+
+DELIMITER ;

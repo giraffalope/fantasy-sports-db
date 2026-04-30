@@ -3,37 +3,20 @@ DROP PROCEDURE IF EXISTS `nascar`.`week_results`;
 DELIMITER //
 
 CREATE PROCEDURE `nascar`.`week_results`(
-    IN `r_series_id` BIGINT UNSIGNED,
-    IN `r_season_id` BIGINT UNSIGNED,
     IN `r_week_id` BIGINT UNSIGNED
 )
 COMMENT 'Aggregate statistics for a specific race week in the NASCAR series, including practices, qualifying, race results, as well as penalties and pitstops.'
 BEGIN
     WITH 
-    series AS (
-        SELECT DISTINCT
-            sr.id AS series_id
-        FROM nascar.series sr
-        WHERE sr.id = r_series_id
-            AND sr.deleted_at IS NULL
-    ),
-    seasons AS (
-        SELECT DISTINCT
-            sr.series_id,
-            ss.id AS season_id
-        FROM nascar.seasons ss
-        JOIN series sr USING (series_id)
-        WHERE ss.deleted_at IS NULL
-            AND ss.id = r_season_id
-    ),
     weeks AS (
         SELECT DISTINCT
-            s.series_id,
-            s.season_id,
+            sr.id AS series_id,
+            s.id AS season_id,
             w.id AS week_id,
             w.track_id AS track_id
         FROM nascar.weeks w
-        JOIN seasons s USING (season_id)
+        JOIN seasons s ON w.season_id = s.id AND s.deleted_at IS NULL
+        JOIN series sr ON s.series_id = sr.id AND sr.deleted_at IS NULL
         WHERE w.deleted_at IS NULL
             AND w.id = r_week_id
     ),
@@ -297,7 +280,7 @@ BEGIN
             rr.average_position,
             rr.green_flag_passes,
             rr.green_flag_times_passed,
-            rr.pass_diff as green_flag_pass_diff,
+            (rr.green_flag_passes - rr.green_flag_times_passed) AS green_flag_pass_diff,
             rr.quality_passes,
             ROUND(rr.quality_passes / rr.green_flag_passes, 3) AS quality_passes_pct,
             rr.total_fastest_laps,

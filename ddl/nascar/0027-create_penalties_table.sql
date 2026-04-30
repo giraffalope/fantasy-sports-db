@@ -1,7 +1,7 @@
 CREATE TABLE `nascar`.`penalties` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `race_id` BIGINT UNSIGNED NOT NULL,
-    `car_driver_id` BIGINT UNSIGNED NOT NULL,
+    `car_driver_id` BIGINT UNSIGNED,
     `lap` INT UNSIGNED NOT NULL,
     `flag` ENUM('GREEN', 'YELLOW', 'WHITE', 'CHECKERED'),
     `description` TEXT NULL,

@@ -1,0 +1,10 @@
+DELIMITER //
+
+CREATE OR REPLACE FUNCTION clean_driver_name(driver_name VARCHAR(255))
+RETURNS VARCHAR(255)
+DETERMINISTIC
+BEGIN
+    RETURN clean_name(driver_name);
+END //
+
+DELIMITER ;

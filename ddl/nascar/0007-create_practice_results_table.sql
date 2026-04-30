@@ -1,7 +1,7 @@
 CREATE TABLE `nascar`.`practice_results` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `practice_id` BIGINT UNSIGNED NOT NULL,
-    `car_driver_id` BIGINT UNSIGNED NOT NULL,
+    `car_driver_id` BIGINT UNSIGNED,
     `finish_position` INT UNSIGNED NOT NULL,
     `best_speed` DECIMAL(8,3) UNSIGNED NULL,
     `best_time` TIME(3) NULL,

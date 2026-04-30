@@ -9,6 +9,7 @@ where w.id = 992
 order by rr.finish_position
 ;
 
+-- Need to manually clean up the car statuses
 select upper(rr.car_status), count(*)
 from race_results rr
 group by upper(rr.car_status)
@@ -16,7 +17,7 @@ group by upper(rr.car_status)
 
 -- These all seem to be special events with bad car status data (Daytona Duels, All-Star, Clash, Bristol Dirt (most likely heat races)
 -- maybe add a special flag to the race table that denotes is_special_event, or enum type that is event_type (Regular, Daytona Duel, All-Star, Clash, Heat)
-select s.year, w.number, w.season_number, w.race_name, rr.*
+select s.year, w.number, w.season_number, w.race_name, w.event_type, rr.*
 from race_results rr
 join races r on rr.race_id = r.id
 join weeks w on r.week_id = w.id
@@ -25,11 +26,15 @@ where rr.car_status like '%stage%' or rr.car_status is null
 ;
 
 -- Handful of rows that are not special events with incomplete data (2012 week 23 Pure Michigan 400, 2017 32 Hollywood Casino 400, 2024 40 Xfinity 500)
-select s.year, w.number, w.season_number, w.race_name, rr.*
+-- probably can delete because those drivers won't matter for the model...
+select s.year, w.number, w.season_number, w.race_name, d.first_name, d.last_name, d.suffix, c.number, rr.*
 from race_results rr
 join races r on rr.race_id = r.id
 join weeks w on r.week_id = w.id
 join seasons s on w.season_id = s.id
+join cars_drivers cd on rr.car_driver_id = cd.id
+join cars c on cd.car_id = c.id
+join drivers d on cd.driver_id = d.id
 where rr.best_position is null;
 
 -- Handful of rows that are not special events with incomplete data (2012 week 23 Pure Michigan 400, 2017 32 Hollywood Casino 400, 2024 40 Xfinity 500)
@@ -90,6 +95,10 @@ from teams t
 order by t.name
 ;
 
+-- Indianapolis Motor Speedway has 2 tracks and only one appears. There is a road course configuration and the both the regular and road course configurations get truncated at the same point.
+select *
+from tracks;
+
 -- Some rows for some weeks in earlier years that have missing data
 select s.year, w.number, w.season_number, w.race_name, qr.*
 from qualifying_results qr
@@ -109,6 +118,7 @@ where best_speed is null or best_time is null or finish_position is null
 ;
 
 -- Bad parsing, or incomplete data for qualifyings
+-- NOTE: POSITIONS ARE WRONG FOR SOME RACE. DUPLICATE POSITIONS. ALTER AND SORT BY BEST TIME, BEST SPEED.
 select s.year, w.number, w.race_name, qr.*
 from qualifying_results qr
 join qualifyings q on qr.qualifying_id = q.id
@@ -128,23 +138,73 @@ where pr.best_speed = 0 or pr.best_time = '00:00:00.000' or pr.best_speed is nul
 order by s.year, w.number, w.race_name, pr.id
 ;
 
--- Road Couse races time parsing is off. The hours should be 00 and looks like minutes are in place of the hours.
-with track_median as (
-    select w.track_id, median(best_speed) over (partition by w.track_id) as median_best_speed
-	from qualifying_results qr
-    join qualifyings q on qr.qualifying_id = q.id
-	join weeks w on q.week_id = w.id
-    group by w.track_id
-)
-select s.year, w.number, w.race_name, qr.id, tm.median_best_speed, qr.best_speed
+select s.year, w.number, w.race_name, t.name, qr.id
 from qualifying_results qr
-join qualifyings q on qr.qualifying_id = q.id
-join weeks w on q.week_id = w.id
-join seasons s on w.season_id = s.id
-join track_median tm on w.track_id = tm.track_id
-join tracks t on w.track_id = t.id
+left join qualifyings q on qr.qualifying_id = q.id
+left join weeks w on q.week_id = w.id
+left join seasons s on w.season_id = s.id
+left join tracks t on w.track_id = t.id
 order by s.year, w.number, w.race_name, qr.id
 ;
+
+select s.year, w.number, w.race_name, t.name, pr.id
+from practice_results pr
+join practices p on pr.practice_id = p.id
+left join weeks w on p.week_id = w.id
+left join seasons s on w.season_id = s.id
+left join tracks t on w.track_id = t.id
+order by s.year, w.number, w.race_name, pr.id
+;
+
+-- Road Couse races time parsing is off. The hours should be 00 and looks like minutes are in place of the hours.
+with track_median as (
+    select w.track_id, median(best_time) over (partition by w.track_id) as median_best_time, median(best_speed) over (partition by w.track_id) as median_best_speed
+	from qualifying_results qr
+    left join qualifyings q on qr.qualifying_id = q.id
+	left join weeks w on q.week_id = w.id
+    where qr.best_time is not null and qr.best_speed is not null
+    group by w.track_id
+),
+stddev_track as (
+	select s.year, w.number, w.race_name, t.name, qr.id, sec_to_time(tm.median_best_time) as median_best_time, qr.best_time, stddev_samp(qr.best_time) over (partition by w.track_id, qr.id) as stddev_best_time, tm.median_best_speed, qr.best_speed, stddev_samp(qr.best_speed) over (partition by w.track_id, qr.id) as stddev_best_speed
+	from qualifying_results qr
+	left join qualifyings q on qr.qualifying_id = q.id
+	left join weeks w on q.week_id = w.id
+	left join seasons s on w.season_id = s.id
+	left join track_median tm on w.track_id = tm.track_id
+	left join tracks t on w.track_id = t.id
+	-- where qr.best_time is not null and qr.best_speed is not null
+	order by s.year, w.number, w.race_name, qr.id
+)
+select *
+from stddev_track;
+;
+
+with track_median as (
+    select w.track_id, median(best_time) over (partition by w.track_id) as median_best_time, median(best_speed) over (partition by w.track_id) as median_best_speed
+	from practice_results pr
+    left join practices p on pr.practice_id = p.id
+	left join weeks w on p.week_id = p.id
+    where pr.best_time is not null and pr.best_speed is not null
+    group by w.track_id
+),
+stddev_track as (
+	select s.year, w.number, w.race_name, t.name, pr.id, sec_to_time(tm.median_best_time) as median_best_time, pr.best_time, stddev_samp(pr.best_time) over (partition by w.track_id, pr.id) as stddev_best_time, tm.median_best_speed, pr.best_speed, stddev_samp(pr.best_speed, pr.id) over (partition by w.track_id) as stddev_best_speed
+	from practice_results pr
+    left join practices p on pr.practice_id = p.id
+	left join weeks w on p.week_id = w.id
+	left join seasons s on w.season_id = s.id
+	left join track_median tm on w.track_id = tm.track_id
+	left join tracks t on w.track_id = t.id
+	-- where pr.best_time is not null and pr.best_speed is not null
+	order by s.year, w.number, w.race_name, pr.id
+)
+select *
+from stddev_track;
+;
+
+select count(*)
+from qualifying_results;
 
 select *
 from qualifying_results qr
@@ -174,3 +234,4 @@ where id = 1
 
 alter table tracks
 	
+    

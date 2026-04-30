@@ -46,11 +46,25 @@ total_races as (
 	select r.week_id, count(*) as total_races
     from races r
     group by 1
+),
+penalties as (
+	select distinct p.race_id, r.week_id
+    from penalties p
+    right join races r using (race_id)
+),
+pitstops as (
+	select distinct p.race_id, r.week_id
+    from pitstops p
+    right join races r using (race_id)
 )
-select s.*, ifnull(tp.total_practices, 0) as total_practices, ifnull(tq.total_qualifyings, 0) as total_qualifyings, ifnull(tr.total_races, 0) as total_races
+select s.*, ifnull(tp.total_practices, 0) as total_practices, ifnull(tq.total_qualifyings, 0) as total_qualifyings, ifnull(tr.total_races, 0) as total_races, ifnull(if(pen.race_id, true, false), false) as has_penalty_data, ifnull(if(pit.race_id, true, false), false) as has_pitstop_data
 from schedule s
 left join total_practices tp using (week_id)
 left join total_qualifyings tq using (week_id)
 right join total_races tr using (week_id)
+left join penalties pen using (week_id)
+left join pitstops pit using (week_id)
 order by year, number
 ;
+
+

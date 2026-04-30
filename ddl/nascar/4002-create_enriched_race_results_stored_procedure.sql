@@ -1,9 +1,7 @@
 DELIMITER //
 
-CREATE PROCEDURE `nascar`.`enriched_race_results`(
-    IN `r_series_name` VARCHAR(255),
-    IN `r_year` INT UNSIGNED,
-    IN `r_week_number` TINYINT UNSIGNED
+CREATE OR REPLACE PROCEDURE `nascar`.`enriched_race_results`(
+    IN `r_race_id` INT UNSIGNED
 )
 BEGIN
     SELECT
@@ -25,45 +23,37 @@ BEGIN
         rr.`best_position`,
         rr.`worst_position`,
         rr.`average_position`,
-        rr.`pass_diff`,
+        (
+            CAST(rr.`green_flag_passes` AS SIGNED) -
+            CAST(rr.`green_flag_times_passed` AS SIGNED)
+        ) AS `pass_diff`,
         rr.`green_flag_passes`,
         rr.`green_flag_times_passed`,
         rr.`quality_passes`,
-        rr.`quality_passes_pct`,
+        ROUND(rr.`quality_passes` / NULLIF(rr.`green_flag_passes`, 0), 3) AS `quality_passes_pct`,
         rr.`total_fastest_laps`,
         rr.`total_top_15_laps`,
-        rr.`total_top_15_laps_pct`,
+        ROUND(rr.`total_top_15_laps` / NULLIF(rr.`total_laps_completed`, 0), 3) AS `total_top_15_laps_pct`,
         rr.`total_laps_led`,
-        rr.`total_laps_led_pct`,
+        ROUND(rr.`total_laps_led` / NULLIF(rr.`total_laps_completed`, 0), 3) AS `total_laps_led_pct`,
         rr.`total_laps_completed`,
         rr.`driver_rating`,
         rr.`car_status`,
         rr.`created_at`,
         rr.`updated_at`,
         rr.`deleted_at`
-    FROM `nascar`.`series` s
-    JOIN `nascar`.`seasons` se ON se.series_id = s.id
-    JOIN `nascar`.`weeks` w ON w.season_id = se.id
-    JOIN `nascar`.`races` r ON r.week_id = w.id
-    JOIN `nascar`.`race_results` rr ON rr.race_id = r.id
-    JOIN `nascar`.`cars_drivers` cd ON cd.id = rr.car_driver_id
-    JOIN `nascar`.`drivers` d ON d.id = cd.driver_id
-    JOIN `nascar`.`cars` c ON c.id = cd.car_id
-    JOIN `nascar`.`teams` t ON t.id = c.team_id
-    JOIN `nascar`.`manufacturers` m ON m.id = c.manufacturer_id
-    WHERE s.name = r_series_name
-        AND se.year = r_year
-        AND w.number = r_week_number
-        AND s.deleted_at IS NULL
-        AND se.deleted_at IS NULL
-        AND w.deleted_at IS NULL
+    FROM `nascar`.`races` r
+    JOIN `nascar`.`weeks` w ON r.week_id = w.id AND w.deleted_at IS NULL
+    JOIN `nascar`.`seasons` s ON w.season_id = s.id AND s.deleted_at IS NULL
+    JOIN `nascar`.`series` sr ON s.series_id = sr.id AND sr.deleted_at IS NULL
+    JOIN `nascar`.`race_results` rr ON rr.race_id = r.id AND rr.deleted_at IS NULL
+    LEFT JOIN `nascar`.`cars_drivers` cd ON cd.id = rr.car_driver_id AND cd.deleted_at IS NULL
+    LEFT JOIN `nascar`.`drivers` d ON d.id = cd.driver_id AND d.deleted_at IS NULL
+    LEFT JOIN `nascar`.`cars` c ON c.id = cd.car_id AND c.deleted_at IS NULL
+    LEFT JOIN `nascar`.`teams` t ON t.id = c.team_id AND t.deleted_at IS NULL
+    LEFT JOIN `nascar`.`manufacturers` m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
+    WHERE r.id = r_race_id
         AND r.deleted_at IS NULL
-        AND rr.deleted_at IS NULL
-        AND cd.deleted_at IS NULL
-        AND d.deleted_at IS NULL
-        AND c.deleted_at IS NULL
-        AND t.deleted_at IS NULL
-        AND m.deleted_at IS NULL
     ORDER BY rr.finish_position ASC, rr.start_position ASC;
 END //
 

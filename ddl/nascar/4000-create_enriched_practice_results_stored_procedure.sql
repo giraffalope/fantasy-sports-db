@@ -1,10 +1,7 @@
 DELIMITER //
 
-CREATE PROCEDURE `nascar`.`enriched_practice_results`(
-    IN `p_series_name` VARCHAR(255),
-    IN `p_year` INT UNSIGNED,
-    IN `p_week_number` TINYINT UNSIGNED,
-    IN `p_practice_number` INT UNSIGNED
+CREATE OR REPLACE PROCEDURE `nascar`.`enriched_practice_results`(
+    IN `p_practice_id` INT UNSIGNED
 )
 BEGIN
     SELECT
@@ -36,30 +33,18 @@ BEGIN
         pr.`created_at`,
         pr.`updated_at`,
         pr.`deleted_at`
-    FROM `nascar`.`series` s
-    JOIN `nascar`.`seasons` se ON se.series_id = s.id
-    JOIN `nascar`.`weeks` w ON w.season_id = se.id
-    JOIN `nascar`.`practices` p ON p.week_id = w.id
-    JOIN `nascar`.`practice_results` pr ON pr.practice_id = p.id
-    JOIN `nascar`.`cars_drivers` cd ON cd.id = pr.car_driver_id
-    JOIN `nascar`.`drivers` d ON d.id = cd.driver_id
-    JOIN `nascar`.`cars` c ON c.id = cd.car_id
-    JOIN `nascar`.`teams` t ON t.id = c.team_id
-    JOIN `nascar`.`manufacturers` m ON m.id = c.manufacturer_id
-    WHERE s.name = p_series_name
-        AND se.year = p_year
-        AND w.number = p_week_number
-        AND p.number = p_practice_number
-        AND s.deleted_at IS NULL
-        AND se.deleted_at IS NULL
+    FROM `nascar`.`weeks` w
+    JOIN `nascar`.`seasons` s ON w.season_id = s.id AND s.deleted_at IS NULL
+    JOIN `nascar`.`series` sr ON s.series_id = sr.id AND sr.deleted_at IS NULL
+    JOIN `nascar`.`practices` p ON p.week_id = w.id AND p.deleted_at IS NULL
+    JOIN `nascar`.`practice_results` pr ON pr.practice_id = p.id AND pr.deleted_at IS NULL
+    LEFT JOIN `nascar`.`cars_drivers` cd ON cd.id = pr.car_driver_id AND cd.deleted_at IS NULL
+    LEFT JOIN `nascar`.`drivers` d ON d.id = cd.driver_id AND d.deleted_at IS NULL
+    LEFT JOIN `nascar`.`cars` c ON c.id = cd.car_id AND c.deleted_at IS NULL
+    LEFT JOIN `nascar`.`teams` t ON t.id = c.team_id AND t.deleted_at IS NULL
+    LEFT JOIN `nascar`.`manufacturers` m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
+    WHERE p.id = p_practice_id
         AND w.deleted_at IS NULL
-        AND p.deleted_at IS NULL
-        AND pr.deleted_at IS NULL
-        AND cd.deleted_at IS NULL
-        AND d.deleted_at IS NULL
-        AND c.deleted_at IS NULL
-        AND t.deleted_at IS NULL
-        AND m.deleted_at IS NULL
     ORDER BY pr.finish_position ASC;
 END //
 
