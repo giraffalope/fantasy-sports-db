@@ -1,0 +1,21 @@
+CREATE TABLE `practice_results` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Surrogate primary key.',
+  `practice_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to practice session.',
+  `car_driver_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Foreign key to car-driver pairing.',
+  `finish_position` int(10) unsigned NOT NULL COMMENT 'Recorded finishing position.',
+  `best_speed` decimal(8,3) unsigned DEFAULT NULL,
+  `best_time` time(3) DEFAULT NULL COMMENT 'Best observed lap/session time metric.',
+  `total_laps` int(10) unsigned DEFAULT NULL COMMENT 'Total laps.',
+  `5_lap_average_time` time(3) DEFAULT NULL COMMENT '5 lap average time.',
+  `10_lap_average_time` time(3) DEFAULT NULL COMMENT '10 lap average time.',
+  `20_lap_average_time` time(3) DEFAULT NULL COMMENT '20 lap average time.',
+  `25_lap_average_time` time(3) DEFAULT NULL COMMENT '25 lap average time.',
+  `30_lap_average_time` time(3) DEFAULT NULL COMMENT '30 lap average time.',
+  `10_lap_average_speed` decimal(8,3) unsigned DEFAULT NULL,
+  `10_lap_start` int(10) unsigned DEFAULT NULL COMMENT '10 lap start.',
+  `10_lap_end` int(10) unsigned DEFAULT NULL COMMENT '10 lap end.',
+  `created_at` timestamp NULL DEFAULT current_timestamp() COMMENT 'Creation timestamp.',
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last update timestamp.',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft-delete timestamp; NULL means active.',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='Per-car-driver practice session performance metrics.';

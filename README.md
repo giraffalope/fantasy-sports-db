@@ -92,9 +92,23 @@ docker compose up -d db
 
 ### Schema Organization
 
-The database schema is organized by sport in the `ddl/<sport>/` directory:
+The NASCAR schema is organized under a sport root folder:
 
-- `ddl/nascar/` - NASCAR database tables and constraints
+- `nascar/ddl/` - ordered DDL migrations by object type
+  - `nascar/ddl/tables/`
+  - `nascar/ddl/foreign_keys/`
+  - `nascar/ddl/unique_keys/`
+  - `nascar/ddl/triggers/`
+  - `nascar/ddl/functions/`
+  - `nascar/ddl/stored_procedures/`
+  - `nascar/ddl/views/`
+  - `nascar/ddl/indexes/`
+  - `nascar/ddl/constraints/`
+- `nascar/seed/` - seed data scripts that run after all DDL
+- `nascar/queries/` - non-bootstrap SQL query files only (not auto-executed)
+
+MariaDB executes init files lexically, so file numbering controls deterministic execution order.
+Seed scripts are one file per target table (for example, all `data_sources` inserts in one file).
 
 ## Quick Start with Scripts
 
@@ -130,7 +144,7 @@ Rebuild the Docker image from scratch:
 - Useful for picking up any schema changes
 
 **Usage:**
-- Use this when you've modified DDL files in `ddl/nascar/`
+- Use this when you've modified SQL files under `nascar/ddl/` or `nascar/seed/`
 - Use DEBUG environment variable for verbose output: `DEBUG=1 ./script/build`
 
 ### Start Server
@@ -143,7 +157,7 @@ Start the MariaDB database container:
 
 **What it does:**
 - Launches a Docker container running MariaDB with the fantasy-sports-db image
-- Initializes the database with all DDL scripts from `ddl/nascar/`
+- Initializes the database by running all scripts from DDL subfolders in `nascar/ddl/` first, then `nascar/seed/`
 - Exposes the database on `localhost:3306`
 - Streams container logs to the terminal
 - Gracefully shuts down on Ctrl+C (SIGINT/SIGTERM)
@@ -344,7 +358,7 @@ lsof -i :3306
 - Verify port mapping: `docker port fantasy-sports-db`
 
 ### Schema Issues
-If you've modified DDL files:
+If you've modified DDL or seed files:
 ```bash
 # Rebuild and restart
 ./script/clear-db

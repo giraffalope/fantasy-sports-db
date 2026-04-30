@@ -1,0 +1,23 @@
+CREATE TABLE `race_results` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Surrogate primary key.',
+  `race_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to race.',
+  `car_driver_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Foreign key to car-driver pairing.',
+  `start_position` int(10) unsigned DEFAULT NULL COMMENT 'Recorded starting position.',
+  `finish_position` int(10) unsigned DEFAULT NULL COMMENT 'Recorded finishing position.',
+  `best_position` int(10) unsigned DEFAULT NULL COMMENT 'Best position.',
+  `worst_position` int(10) unsigned DEFAULT NULL COMMENT 'Worst position.',
+  `average_position` int(10) unsigned DEFAULT NULL COMMENT 'Average position.',
+  `green_flag_passes` int(10) unsigned DEFAULT NULL COMMENT 'Green flag passes.',
+  `green_flag_times_passed` int(10) unsigned DEFAULT NULL COMMENT 'Green flag times passed.',
+  `quality_passes` int(10) unsigned DEFAULT NULL COMMENT 'Quality passes.',
+  `total_fastest_laps` int(10) unsigned DEFAULT NULL COMMENT 'Total fastest laps.',
+  `total_top_15_laps` int(10) unsigned DEFAULT NULL COMMENT 'Total top 15 laps.',
+  `total_laps_led` int(10) unsigned DEFAULT NULL COMMENT 'Total laps led.',
+  `total_laps_completed` int(10) unsigned DEFAULT NULL COMMENT 'Total laps completed.',
+  `driver_rating` decimal(8,3) unsigned DEFAULT NULL,
+  `car_status` varchar(255) DEFAULT NULL COMMENT 'Car status.',
+  `created_at` timestamp NULL DEFAULT current_timestamp() COMMENT 'Creation timestamp.',
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last update timestamp.',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft-delete timestamp; NULL means active.',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='Per-car-driver race results and race-level outcome metrics.';

@@ -5,9 +5,18 @@ FROM mariadb:latest
 ENV MYSQL_DATABASE=nascar
 ENV MARIADB_AUTO_UPGRADE=1
 
-# Copy all DDL files to the initialization directory
-# MariaDB will automatically execute .sql files in alphabetical order
-COPY ddl/nascar/ /docker-entrypoint-initdb.d/
+# Copy NASCAR DDL subfolders first, then seed files.
+# MariaDB executes .sql files in lexical order after copy, so file numbering controls order.
+COPY nascar/ddl/tables/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/foreign_keys/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/unique_keys/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/triggers/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/functions/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/stored_procedures/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/views/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/indexes/ /docker-entrypoint-initdb.d/
+COPY nascar/ddl/constraints/ /docker-entrypoint-initdb.d/
+COPY nascar/seed/ /docker-entrypoint-initdb.d/
 
 # Optional: Add initialization script if needed
 # COPY init.sh /init.sh

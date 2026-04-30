@@ -1,9 +1,0 @@
-DELIMITER //
-
-CREATE OR REPLACE FUNCTION get_driver_last_name(full_name VARCHAR(255))
-RETURNS VARCHAR(100) DETERMINISTIC
-BEGIN
-    RETURN SUBSTRING_INDEX(SUBSTRING_INDEX(parse_driver_name_parts(full_name), '|', 2), '|', -1);
-END //
-
-DELIMITER ;

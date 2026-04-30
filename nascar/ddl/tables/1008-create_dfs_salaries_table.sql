@@ -1,0 +1,12 @@
+CREATE TABLE `dfs_salaries` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Surrogate primary key.',
+  `dfs_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to DFS provider.',
+  `race_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to race.',
+  `dfs_driver_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Provider-specific DFS driver identifier.',
+  `car_driver_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Foreign key to car-driver pairing.',
+  `salary` int(10) unsigned DEFAULT NULL COMMENT 'DFS salary value for the car-driver entry.',
+  `created_at` timestamp NULL DEFAULT current_timestamp() COMMENT 'Creation timestamp.',
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last update timestamp.',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft-delete timestamp; NULL means active.',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='DFS salary snapshots keyed by race and car-driver pairing.';
