@@ -39,7 +39,7 @@ BEGIN
                 AND w.number < ctx.week_number
                 AND EXISTS (
                     SELECT 1
-                    FROM nascar.week_results wr
+                    FROM nascar.agg_week_results wr
                     WHERE wr.series_id = r_series_id
                         AND wr.season_id = r_season_id
                         AND wr.week_id = w.id

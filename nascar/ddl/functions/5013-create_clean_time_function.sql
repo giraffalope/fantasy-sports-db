@@ -19,7 +19,7 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    IF cleaned_value REGEXP '^[0-9]{1,3}:[0-9]{2}:[0-9]{2}(\\\\.[0-9]{1,6})?$' THEN
+    IF cleaned_value REGEXP '^[0-9]{1,3}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?$' THEN
         SET parsed_time = CAST(cleaned_value AS TIME(3));
     ELSE
         RETURN NULL;

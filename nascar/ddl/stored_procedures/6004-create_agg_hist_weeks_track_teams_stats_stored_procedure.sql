@@ -35,7 +35,7 @@ BEGIN
                 AND w.number < ctx.week_number
                 AND EXISTS (
                     SELECT 1
-                    FROM nascar.week_results wr
+                    FROM nascar.agg_week_results wr
                     WHERE wr.series_id = r_series_id
                         AND wr.season_id = r_season_id
                         AND wr.week_id = w.id
@@ -128,7 +128,7 @@ BEGIN
         ROUND(AVG(hws.pf_10_lap_start), 3) as pf_avg_10_lap_start,
         ROUND(AVG(hws.pf_10_lap_end), 3) as pf_avg_10_lap_end,
         COUNT(*) as r_races_total
-    FROM nascar.week_results hws
+    FROM nascar.agg_week_results hws
     WHERE hws.series_id = r_series_id
         AND hws.season_id = r_season_id
         AND hws.deleted_at IS NULL

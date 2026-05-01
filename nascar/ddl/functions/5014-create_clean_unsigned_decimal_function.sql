@@ -15,7 +15,7 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    IF cleaned_value NOT REGEXP '^[0-9]+(\\\\.[0-9]+)?$' THEN
+    IF cleaned_value NOT REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN
         RETURN NULL;
     END IF;
 

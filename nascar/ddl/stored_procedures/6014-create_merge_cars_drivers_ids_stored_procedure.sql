@@ -126,8 +126,8 @@ BEGIN
     WHERE `car_driver_id` = p_duplicate_car_driver_id;
 
     DELETE wr_dup
-    FROM `nascar`.`week_results` wr_dup
-    JOIN `nascar`.`week_results` wr_canon
+    FROM `nascar`.`agg_week_results` wr_dup
+    JOIN `nascar`.`agg_week_results` wr_canon
       ON wr_canon.`series_id` = wr_dup.`series_id`
      AND wr_canon.`season_id` = wr_dup.`season_id`
      AND wr_canon.`week_id` = wr_dup.`week_id`
@@ -135,7 +135,7 @@ BEGIN
      AND wr_canon.`car_driver_id` = p_canonical_car_driver_id
     WHERE wr_dup.`car_driver_id` = p_duplicate_car_driver_id;
 
-    UPDATE `nascar`.`week_results`
+    UPDATE `nascar`.`agg_week_results`
     SET
         `car_driver_id` = p_canonical_car_driver_id,
         `car_id` = v_canonical_car_id,

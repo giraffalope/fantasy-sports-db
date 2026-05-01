@@ -159,18 +159,18 @@ BEGIN
     SET pn.`car_driver_id` = m.`new_cd_id`;
 
     DELETE wr_dup
-    FROM `nascar`.`week_results` wr_dup
+    FROM `nascar`.`agg_week_results` wr_dup
     JOIN `tmp_driver_merge_cd_map` m
       ON m.`old_cd_id` = wr_dup.`car_driver_id`
      AND m.`new_cd_id` IS NOT NULL
-    JOIN `nascar`.`week_results` wr_canon
+    JOIN `nascar`.`agg_week_results` wr_canon
       ON wr_canon.`series_id` = wr_dup.`series_id`
      AND wr_canon.`season_id` = wr_dup.`season_id`
      AND wr_canon.`week_id` = wr_dup.`week_id`
      AND wr_canon.`race_id` = wr_dup.`race_id`
      AND wr_canon.`car_driver_id` = m.`new_cd_id`;
 
-    UPDATE `nascar`.`week_results` wr
+    UPDATE `nascar`.`agg_week_results` wr
     JOIN `tmp_driver_merge_cd_map` m
       ON m.`old_cd_id` = wr.`car_driver_id`
      AND m.`new_cd_id` IS NOT NULL
@@ -195,7 +195,7 @@ BEGIN
     SET hwtt.`car_driver_id` = m.`new_cd_id`;
 
     
-    UPDATE `nascar`.`week_results`
+    UPDATE `nascar`.`agg_week_results`
     SET `driver_id` = p_canonical_driver_id
     WHERE `driver_id` = p_duplicate_driver_id;
 

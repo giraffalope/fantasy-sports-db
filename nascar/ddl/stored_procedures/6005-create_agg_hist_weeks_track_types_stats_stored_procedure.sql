@@ -148,7 +148,7 @@ BEGIN
         hws.pf_10_lap_start,
         hws.pf_10_lap_end
     FROM track_types_weeks ttw
-    JOIN nascar.week_results hws USING (series_id, season_id, week_id, track_id)
+    JOIN nascar.agg_week_results hws USING (series_id, season_id, week_id, track_id)
     WHERE hws.deleted_at IS NULL
     ;
 END$$
