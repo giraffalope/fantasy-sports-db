@@ -57,3 +57,19 @@
 - For views/functions/stored procedures, include clear SQL comments in the file describing purpose, inputs, outputs, and business intent.
 - Prefer domain-aware comments over generic descriptions. Use context from `fantasy-sports-airflow` (DAGs, SQL loaders, importers, and downstream usage) to write accurate comments for fields and transformations.
 - When object meaning is inferred from usage in `fantasy-sports-airflow`, document that intent directly in the comment so future maintainers can trace why the schema element exists.
+
+## Checklist: adding a new table (`nascar/ddl`)
+
+1. **Table DDL** in `nascar/ddl/tables` with a new `1XXX` prefix that preserves dependency order (referenced tables must exist first).
+2. **Foreign keys** in `nascar/ddl/foreign_keys` (`2XXX`): one file per constraint, `ON DELETE` semantics aligned with how orphan rows should behave.
+3. **Indexes** in `nascar/ddl/indexes` (`8XXX`) for lookup paths and any FK columns that need explicit secondary indexes for query plans (follow existing patterns in the repo).
+4. **Unique keys** in `nascar/ddl/unique_keys` (`3XXX`) for natural or composite business keys where duplicates must be rejected.
+5. **Triggers** in `nascar/ddl/triggers` (`4XXX`) for soft-delete cascade or other invariants; extend existing dimension triggers when new child or aggregate tables reference those dimensions.
+6. **Views / stored procedures** (`7XXX` / `6XXX`) if any reporting or loaders reference the new grain; keep view definitions consistent with soft-delete filters elsewhere.
+7. **Seeds** in `nascar/seed` (`9XXX`) when the table ships reference data; keep deterministic primary keys and idempotent `ON DUPLICATE KEY` updates where used.
+8. **`nascar/ddl/constraints`** when live databases need a one-off guard (optional; not auto-modeled in all environments).
+9. **Verification**: build or start the `fantasy-sports-db` Docker image so MariaDB runs all `docker-entrypoint-initdb.d` scripts; fix ordering or duplicate object-name failures until init is clean.
+
+### NASCAR: `car_generation_model_id` and previous-track aggregates
+
+`car_generation_models` is not keyed directly by `car_generation_id`. For **`agg_week_prev_track_*`** (and any other SQL) that must relate a **car generation model** to a **car generation** and **seasons**, join through **`car_generation_models_seasons`**: use `car_generation_models_seasons.car_generations_seasons_id` → **`car_generations_seasons`** (which carries `car_generation_id` and `season_id`) to enumerate all relevant seasons and generations for a given model bridge row. Do not assume `car_generation_model_id` alone implies `car_generation_id` without that bridge.

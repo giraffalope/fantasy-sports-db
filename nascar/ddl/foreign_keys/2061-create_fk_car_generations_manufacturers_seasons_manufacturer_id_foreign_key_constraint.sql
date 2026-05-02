@@ -1,0 +1,1 @@
+ALTER TABLE `car_generation_models_seasons` ADD CONSTRAINT `fk_car_generations_manufacturers_seasons_manufacturer_id` FOREIGN KEY (`manufacturer_id`) REFERENCES `manufacturers` (`id`) ON DELETE CASCADE;

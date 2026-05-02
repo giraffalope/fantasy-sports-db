@@ -1,0 +1,1 @@
+ALTER TABLE `agg_week_prev_track_car_generation_models_results` ADD UNIQUE KEY `unique_awptcgmr_ssww_track_cgen_cgmodel` (`series_id`,`season_id`,`week_id`,`track_id`,`car_generation_id`,`car_generation_model_id`);

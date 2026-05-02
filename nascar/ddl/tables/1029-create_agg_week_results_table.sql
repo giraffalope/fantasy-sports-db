@@ -8,7 +8,9 @@ CREATE TABLE `agg_week_results` (
   `car_driver_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_drivers, indicating the car/driver combination for which this week''s statistics apply.',
   `car_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.cars, indicating the car for which this week''s statistics apply.',
   `manufacturer_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.manufacturers, indicating the manufacturer for which this week''s statistics apply.',
-  `team_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.teams, indicating the team for which this week''s statistics apply.',
+  `car_generation_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generations, indicating the generation for this week''s statistics.',
+  `car_generation_models_seasons_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generation_models_seasons, indicating generation/manufacturer/season model mapping.',
+  `team_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Foreign key to nascar.teams, indicating the team for which this week''s statistics apply.',
   `driver_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.drivers, indicating the driver for which this week''s statistics apply.',
   `r_start_position` int(10) unsigned DEFAULT NULL COMMENT 'Race starting position',
   `r_finish_position` int(10) unsigned DEFAULT NULL COMMENT 'Race finishing position',
@@ -102,4 +104,4 @@ CREATE TABLE `agg_week_results` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last update timestamp.',
   `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft-delete timestamp; NULL means active.',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='Weekly enriched feature/output table consumed by modeling and reporting.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='Weekly enriched feature/output table consumed by modeling and reporting. Race week for car/driver/manufacturer/team/season.';

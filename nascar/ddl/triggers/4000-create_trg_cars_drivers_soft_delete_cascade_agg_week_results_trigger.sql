@@ -12,6 +12,8 @@ BEGIN
         UPDATE `nascar`.`penalties` SET `deleted_at` = NEW.`deleted_at` WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NULL;
         UPDATE `nascar`.`pitstops` SET `deleted_at` = NEW.`deleted_at` WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NULL;
         UPDATE `nascar`.`agg_week_results` SET `deleted_at` = NEW.`deleted_at` WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NULL;
+        UPDATE `nascar`.`agg_week_prev_track_cars_drivers_results` SET `deleted_at` = NEW.`deleted_at` WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NULL;
+        UPDATE `nascar`.`agg_week_prev_track_types_cars_drivers_results` SET `deleted_at` = NEW.`deleted_at` WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NULL;
     ELSEIF OLD.`deleted_at` IS NOT NULL AND NEW.`deleted_at` IS NULL THEN
         UPDATE `nascar`.`race_results` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
         UPDATE `nascar`.`practice_results` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
@@ -20,6 +22,8 @@ BEGIN
         UPDATE `nascar`.`penalties` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
         UPDATE `nascar`.`pitstops` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
         UPDATE `nascar`.`agg_week_results` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
+        UPDATE `nascar`.`agg_week_prev_track_cars_drivers_results` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
+        UPDATE `nascar`.`agg_week_prev_track_types_cars_drivers_results` SET `deleted_at` = NULL WHERE `car_driver_id` = NEW.`id` AND `deleted_at` IS NOT NULL;
     END IF;
 END$$
 DELIMITER ;

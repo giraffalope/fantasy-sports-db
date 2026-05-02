@@ -46,6 +46,8 @@ BEGIN
         `car_driver_id`,
         `car_id`,
         `manufacturer_id`,
+        `car_generation_id`,
+        `car_generation_models_seasons_id`,
         `team_id`,
         `driver_id`,
         `r_start_position`,
@@ -276,6 +278,33 @@ BEGIN
         WHERE wrp.type = 'TWO_WHEEL_CHANGE_RIGHT'
         GROUP BY wrp.car_driver_id
     ),
+    season_car_generations AS (
+        SELECT
+            cgs.season_id,
+            cgs.car_generation_id,
+            cgms.manufacturer_id,
+            cgms.id AS car_generation_models_seasons_id
+        FROM nascar.car_generations_seasons cgs
+        JOIN nascar.car_generation_models_seasons cgms
+            ON cgms.car_generations_seasons_id = cgs.id
+            AND cgms.deleted_at IS NULL
+        JOIN (
+            SELECT
+                cgsi.season_id,
+                cgmsi.manufacturer_id,
+                MIN(cgmsi.id) AS min_cgms_id
+            FROM nascar.car_generations_seasons cgsi
+            JOIN nascar.car_generation_models_seasons cgmsi
+                ON cgmsi.car_generations_seasons_id = cgsi.id
+                AND cgmsi.deleted_at IS NULL
+            WHERE cgsi.deleted_at IS NULL
+            GROUP BY cgsi.season_id, cgmsi.manufacturer_id
+        ) cgms_pick
+            ON cgms_pick.season_id = cgs.season_id
+            AND cgms_pick.manufacturer_id = cgms.manufacturer_id
+            AND cgms_pick.min_cgms_id = cgms.id
+        WHERE cgs.deleted_at IS NULL
+    ),
     weeks_practices_results AS (
         SELECT DISTINCT
             wp.series_id,
@@ -287,6 +316,8 @@ BEGIN
             pr.car_driver_id AS car_driver_id,
             c.id AS car_id,
             m.id AS manufacturer_id,
+            scg.car_generation_id AS car_generation_id,
+            scg.car_generation_models_seasons_id AS car_generation_models_seasons_id,
             t.id AS team_id,
             d.id AS driver_id,
             pr.finish_position,
@@ -306,7 +337,8 @@ BEGIN
         JOIN nascar.cars_drivers cd ON cd.id = pr.car_driver_id AND cd.deleted_at IS NULL
         JOIN nascar.cars c ON c.id = cd.car_id AND c.deleted_at IS NULL
         JOIN nascar.manufacturers m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
-        JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
+        JOIN season_car_generations scg ON scg.season_id = wp.season_id AND scg.manufacturer_id = m.id
+        LEFT JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
         JOIN nascar.drivers d ON d.id = cd.driver_id AND d.deleted_at IS NULL
         WHERE pr.deleted_at IS NULL
             AND pr.best_speed IS NOT NULL
@@ -344,6 +376,8 @@ BEGIN
             car_driver_id,
             car_id,
             manufacturer_id,
+            car_generation_id,
+            car_generation_models_seasons_id,
             team_id,
             driver_id,
             MIN(finish_position) AS min_finish_position,
@@ -384,7 +418,7 @@ BEGIN
             MAX(10_lap_end) AS max_10_lap_end,
             ROUND(AVG(10_lap_end), 3) AS avg_10_lap_end
         FROM weeks_practices_results
-        GROUP BY series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id
+        GROUP BY series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, car_generation_id, car_generation_models_seasons_id, team_id, driver_id
     ),
     weeks_qualifying_results AS (
         SELECT DISTINCT
@@ -396,6 +430,8 @@ BEGIN
             qr.car_driver_id,
             c.id AS car_id,
             m.id AS manufacturer_id,
+            scg.car_generation_id AS car_generation_id,
+            scg.car_generation_models_seasons_id AS car_generation_models_seasons_id,
             t.id AS team_id,
             d.id AS driver_id,
             qr.finish_position,
@@ -406,7 +442,8 @@ BEGIN
         JOIN nascar.cars_drivers cd ON cd.id = qr.car_driver_id AND cd.deleted_at IS NULL
         JOIN nascar.cars c ON c.id = cd.car_id AND c.deleted_at IS NULL
         JOIN nascar.manufacturers m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
-        JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
+        JOIN season_car_generations scg ON scg.season_id = wq.season_id AND scg.manufacturer_id = m.id
+        LEFT JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
         JOIN nascar.drivers d ON d.id = cd.driver_id AND d.deleted_at IS NULL
         WHERE qr.deleted_at IS NULL
             AND qr.finish_position IS NOT NULL
@@ -431,6 +468,8 @@ BEGIN
             rr.car_driver_id,
             c.id AS car_id,
             m.id AS manufacturer_id,
+            scg.car_generation_id AS car_generation_id,
+            scg.car_generation_models_seasons_id AS car_generation_models_seasons_id,
             t.id AS team_id,
             d.id AS driver_id,
             rr.start_position,
@@ -481,7 +520,8 @@ BEGIN
         JOIN nascar.cars_drivers cd ON cd.id = rr.car_driver_id AND cd.deleted_at IS NULL
         JOIN nascar.cars c ON c.id = cd.car_id AND c.deleted_at IS NULL
         JOIN nascar.manufacturers m ON m.id = c.manufacturer_id AND m.deleted_at IS NULL
-        JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
+        JOIN season_car_generations scg ON scg.season_id = wr.season_id AND scg.manufacturer_id = m.id
+        LEFT JOIN nascar.teams t ON t.id = c.team_id AND t.deleted_at IS NULL
         JOIN nascar.drivers d ON d.id = cd.driver_id AND d.deleted_at IS NULL
         JOIN nascar.tracks tr ON wr.track_id = tr.id AND tr.deleted_at IS NULL
         LEFT JOIN weeks_races_pitstops_totals pt USING (car_driver_id)
@@ -501,6 +541,8 @@ BEGIN
         rr.car_driver_id AS car_driver_id,
         rr.car_id AS car_id,
         rr.manufacturer_id AS manufacturer_id,
+        rr.car_generation_id AS car_generation_id,
+        rr.car_generation_models_seasons_id AS car_generation_models_seasons_id,
         rr.team_id AS team_id,
         rr.driver_id AS driver_id,
         rr.start_position AS r_start_position,
@@ -592,9 +634,9 @@ BEGIN
         prf.10_lap_start AS pf_10_lap_start,
         prf.10_lap_end AS pf_10_lap_end
     FROM weeks_race_results rr
-    LEFT JOIN weeks_qualifying_results qr USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
-    LEFT JOIN weeks_practices_results_total prt USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
-    LEFT JOIN weeks_practices_results_final prf USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
+    LEFT JOIN weeks_qualifying_results qr USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, car_generation_id, car_generation_models_seasons_id, team_id, driver_id)
+    LEFT JOIN weeks_practices_results_total prt USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, car_generation_id, car_generation_models_seasons_id, team_id, driver_id)
+    LEFT JOIN weeks_practices_results_final prf USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, car_generation_id, car_generation_models_seasons_id, team_id, driver_id)
     ORDER BY rr.series_id, rr.season_id, rr.week_id, rr.finish_position, rr.start_position
     ;
 END$$

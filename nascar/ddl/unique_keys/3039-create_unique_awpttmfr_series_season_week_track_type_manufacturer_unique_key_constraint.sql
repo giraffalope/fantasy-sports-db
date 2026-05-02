@@ -1,0 +1,1 @@
+ALTER TABLE `agg_week_prev_track_types_manufacturers_results` ADD UNIQUE KEY `unique_awpttmfr_series_season_week_track_type_manufacturer` (`series_id`,`season_id`,`week_id`,`track_type_id`,`manufacturer_id`);
