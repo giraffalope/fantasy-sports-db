@@ -19,8 +19,12 @@ BEGIN
         RETURN NULL;
     END IF;
 
+    -- H:MM:SS or HH:MM:SS with optional fractional seconds (e.g. qualifying / practice CSV).
     IF cleaned_value REGEXP '^[0-9]{1,3}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?$' THEN
         SET parsed_time = CAST(cleaned_value AS TIME(3));
+    -- Plain seconds as integer or decimal (e.g. pit JSON: 61.123 -> 00:01:01.123).
+    ELSEIF cleaned_value REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN
+        SET parsed_time = CAST(SEC_TO_TIME(CAST(cleaned_value AS DECIMAL(20, 6))) AS TIME(3));
     ELSE
         RETURN NULL;
     END IF;

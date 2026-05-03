@@ -9,7 +9,7 @@ CREATE TABLE `agg_week_results` (
   `car_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.cars, indicating the car for which this week''s statistics apply.',
   `manufacturer_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.manufacturers, indicating the manufacturer for which this week''s statistics apply.',
   `car_generation_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generations, indicating the generation for this week''s statistics.',
-  `car_generation_models_seasons_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generation_models_seasons, indicating generation/manufacturer/season model mapping.',
+  `car_generation_model_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generation_models, indicating the generation model for this week''s statistics.',
   `team_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Foreign key to nascar.teams, indicating the team for which this week''s statistics apply.',
   `driver_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.drivers, indicating the driver for which this week''s statistics apply.',
   `r_start_position` int(10) unsigned DEFAULT NULL COMMENT 'Race starting position',

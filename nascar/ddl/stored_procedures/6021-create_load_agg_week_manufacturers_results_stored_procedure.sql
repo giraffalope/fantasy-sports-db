@@ -6,7 +6,7 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_manufacturers_results`()
     COMMENT 'Load weekly aggregate race features averages for weeks that have race results but no active agg_week_results rows, or with active rows having NULL finish position at the manufacturer level.'
 BEGIN
-    insert into `nascar`.`agg_week_results` (
+    insert into `nascar`.`agg_week_manufacturers_results` (
         series_id,
         season_id,
         week_id,
