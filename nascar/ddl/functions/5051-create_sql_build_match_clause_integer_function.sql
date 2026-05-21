@@ -7,7 +7,8 @@ CREATE DEFINER=`root`@`localhost` FUNCTION `nascar`.`sql_build_match_clause_inte
     DETERMINISTIC
 BEGIN
     DECLARE p_value JSON;
-    SET p_value = JSON_EXTRACT(p_json, CONCAT('$.', p_key));
+
+    SET p_value = nascar.sql_json_extract_at_path(p_json, p_key);
 
     CASE JSON_TYPE(p_value)
         WHEN 'ARRAY' THEN
@@ -18,4 +19,4 @@ BEGIN
             RETURN '> 0';
     END CASE;
 END$$
-DELIMITER ;   
+DELIMITER ;
