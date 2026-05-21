@@ -17,9 +17,13 @@ BEGIN
     DECLARE p_series_query TEXT;
 
     DECLARE p_season_predicate TEXT;
-    DECLARE p_car_generation_predicate TEXT;
-    DECLARE p_car_generation_model_predicate TEXT;
     DECLARE p_seasons_query TEXT;
+
+    DECLARE p_car_generation_predicate TEXT;
+    DECLARE p_car_generation_query TEXT;
+
+    DECLARE p_car_generation_model_predicate TEXT;
+    DECLARE p_car_generation_models_query TEXT;
 
     DECLARE p_week_predicate TEXT;
     DECLARE p_weeks_query TEXT;
@@ -57,19 +61,37 @@ BEGIN
     );
 
     SET p_season_predicate = nascar.sql_build_dimension_predicate(p_json, 'season', 's.id');
-    SET p_car_generation_predicate = nascar.sql_build_dimension_predicate(p_json, 'car_generation', 'cgs.car_generation_id');
-    SET p_car_generation_model_predicate = nascar.sql_build_dimension_predicate(p_json, 'car_generation_model', 'cgms.car_generation_model_id');
 
     SET p_seasons_query = CONCAT(
         'seasons AS (\n',
-        '\tSELECT DISTINCT sr.series_id, s.id AS season_id, cgs.car_generation_id, cgms.car_generation_model_id\n',
+        '\tSELECT DISTINCT sr.series_id, s.id AS season_id\n',
         '\tFROM series sr\n',
         '\tJOIN nascar.seasons s ON sr.series_id = s.series_id AND s.deleted_at IS NULL\n',
-        '\tJOIN nascar.car_generations_seasons cgs ON s.id = cgs.season_id AND cgs.deleted_at IS NULL\n',
-        '\tJOIN nascar.car_generation_models_seasons cgms ON cgs.id = cgms.car_generations_seasons_id AND cgms.deleted_at IS NULL\n',
         '\tWHERE ', p_season_predicate, '\n',
-        '\t\tAND ', p_car_generation_predicate, '\n',
-        '\t\tAND ', p_car_generation_model_predicate, '\n',
+        ')'
+    );
+
+    SET p_car_generation_predicate = nascar.sql_build_dimension_predicate(p_json, 'car_generation', 'cgs.car_generation_id');
+
+    SET p_car_generation_query = CONCAT(
+        'car_generations AS (\n',
+        '\tSELECT DISTINCT s.series_id, s.season_id, cgs.id as car_generations_seasons_id, cgs.car_generation_id\n',
+        '\tFROM seasons s\n',
+        '\tJOIN nascar.car_generations_seasons cgs ON s.season_id = cgs.season_id AND cgs.deleted_at IS NULL\n',
+        '\tJOIN nascar.car_generations cg ON cgs.car_generation_id = cg.id AND cg.deleted_at IS NULL\n',
+        '\tWHERE ', p_car_generation_predicate, '\n',
+        ')'
+    );
+
+    SET p_car_generation_model_predicate = nascar.sql_build_dimension_predicate(p_json, 'car_generation_model', 'cgms.car_generation_model_id');
+
+    SET p_car_generation_models_query = CONCAT(
+        'car_generation_models AS (\n',
+        '\tSELECT DISTINCT cgs.series_id, cgs.season_id, cgms.manufacturer_id, cgms.car_generation_model_id\n',
+        '\tFROM car_generations cgs\n',
+        '\tJOIN nascar.car_generation_models_seasons cgms ON cgs.car_generations_seasons_id = cgms.car_generations_seasons_id AND cgms.deleted_at IS NULL\n',
+        '\tJOIN nascar.car_generation_models cgm ON cgms.car_generation_model_id = cgm.id AND cgm.deleted_at IS NULL\n',
+        '\tWHERE ', p_car_generation_model_predicate, '\n',
         ')'
     );
 
@@ -77,7 +99,7 @@ BEGIN
 
     SET p_weeks_query = CONCAT(
         'weeks AS (\n',
-        '\tSELECT DISTINCT s.series_id, s.season_id, s.car_generation_id, s.car_generation_model_id, w.id AS week_id, w.track_id\n',
+        '\tSELECT DISTINCT s.series_id, s.season_id, w.id AS week_id, w.track_id\n',
         '\tFROM seasons s\n',
         '\tJOIN nascar.weeks w ON s.season_id = w.season_id AND w.deleted_at IS NULL\n',
         '\tWHERE ', p_week_predicate, '\n',
@@ -99,7 +121,7 @@ BEGIN
 
     SET p_tracks_query = CONCAT(
         'tracks AS (\n',
-        '\tSELECT DISTINCT w.series_id, w.season_id, w.car_generation_id, w.car_generation_model_id, w.week_id, w.track_id\n',
+        '\tSELECT DISTINCT w.series_id, w.season_id, w.week_id, w.track_id\n',
         '\tFROM weeks w\n',
         '\tJOIN nascar.tracks t ON w.track_id = t.id AND t.deleted_at IS NULL\n',
         '\tJOIN nascar.tracks_track_types ttt ON ttt.track_id = t.id AND ttt.deleted_at IS NULL\n',
@@ -112,9 +134,9 @@ BEGIN
 
     SET p_races_query = CONCAT(
         'races AS (\n',
-        '\tSELECT DISTINCT t.series_id, t.season_id, t.car_generation_id, t.car_generation_model_id, t.week_id, t.track_id, r.id AS race_id\n',
-        '\tFROM tracks t\n',
-        '\tJOIN nascar.races r ON t.week_id = r.week_id AND r.deleted_at IS NULL\n',
+        '\tSELECT DISTINCT w.series_id, w.season_id, w.week_id, w.track_id, r.id AS race_id\n',
+        '\tFROM weeks w\n',
+        '\tJOIN nascar.races r ON w.week_id = r.week_id AND r.deleted_at IS NULL\n',
         '\tWHERE ', p_race_predicate, '\n',
         ')'
     );
@@ -167,13 +189,15 @@ BEGIN
         'SELECT awr.*\n',
         'FROM nascar.agg_week_results awr\n',
         'JOIN series sr USING (series_id)\n',
-        'JOIN seasons s USING (series_id, season_id, car_generation_id, car_generation_model_id)\n',
-        'JOIN weeks w USING (series_id, season_id, car_generation_id, car_generation_model_id, week_id, track_id)\n',
-        'JOIN races r USING (series_id, season_id, car_generation_id, car_generation_model_id, week_id, track_id, race_id)\n',
+        'JOIN seasons s USING (series_id, season_id)\n',
+        'JOIN weeks w USING (series_id, season_id, week_id, track_id)\n',
+        'JOIN races r USING (series_id, season_id, week_id, track_id, race_id)\n',
         'JOIN teams t USING (team_id)\n',
         'JOIN car_drivers cd USING (car_driver_id)\n',
         'JOIN drivers d USING (driver_id)\n',
         'JOIN cars c USING (car_id)\n',
+        'JOIN car_generations cgs USING (series_id, season_id)\n',
+        'JOIN car_generation_models cgms USING (series_id, season_id, manufacturer_id)\n',
         'WHERE awr.deleted_at IS NULL\n',
         'ORDER BY series_id, season_id, week_id, track_id, r_finish_position, r_start_position\n'
     );
@@ -182,6 +206,8 @@ BEGIN
         'WITH ',
         p_series_query, ',\n',
         p_seasons_query, ',\n',
+        p_car_generation_query, ',\n',
+        p_car_generation_models_query, ',\n',
         p_weeks_query, ',\n',
         p_track_types_query, ',\n',
         p_tracks_query, ',\n',
