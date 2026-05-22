@@ -5,7 +5,7 @@ CREATE TABLE `agg_week_prev_track_manufacturers_results` (
   `week_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.weeks, indicating the week for which this week''s statistics apply.',
   `track_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.tracks, indicating the track for which this week''s statistics apply.',
   `manufacturer_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.manufacturers, indicating the manufacturer for which this week''s statistics apply.',
-  `manufacturer_car_total` decimal(14,3) unsigned DEFAULT NULL COMMENT 'total number of cars in the manufacturer grain',
+  `manufacturer_total` int(10) unsigned DEFAULT NULL COMMENT 'Total count for the manufacturer grain for prior races at this track.',
   `avg_r_start_position` decimal(14,3) unsigned DEFAULT NULL COMMENT 'Mean across cars/drivers in the manufacturer grain for this race week; stored to 3 decimal places.',
   `avg_r_finish_position` decimal(14,3) unsigned DEFAULT NULL COMMENT 'Mean across cars/drivers in the manufacturer grain for this race week; stored to 3 decimal places.',
   `avg_r_place_diff` decimal(14,3) DEFAULT NULL COMMENT 'Mean across cars/drivers in the manufacturer grain for this race week; stored to 3 decimal places.',

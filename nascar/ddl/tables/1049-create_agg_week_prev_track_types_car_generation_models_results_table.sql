@@ -6,6 +6,7 @@ CREATE TABLE `agg_week_prev_track_types_car_generation_models_results` (
   `track_type_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.track_types, indicating the track type for which this week''s statistics apply.',
   `car_generation_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generations, indicating the generation for this week''s statistics.',
   `car_generation_model_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generation_models, indicating the car generation model for this week''s statistics.',
+  `car_generation_model_total` int(10) unsigned DEFAULT NULL COMMENT 'Total count for the car generation model grain for prior races at this track.',
   `avg_r_start_position` decimal(14,3) unsigned DEFAULT NULL COMMENT 'Mean across cars/drivers in the car generation model grain for this race week; stored to 3 decimal places.',
   `avg_r_finish_position` decimal(14,3) unsigned DEFAULT NULL COMMENT 'Mean across cars/drivers in the car generation model grain for this race week; stored to 3 decimal places.',
   `avg_r_place_diff` decimal(14,3) DEFAULT NULL COMMENT 'Mean across cars/drivers in the car generation model grain for this race week; stored to 3 decimal places.',

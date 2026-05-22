@@ -18,7 +18,7 @@ BEGIN
         week_id,
         track_id,
         team_id,
-        team_car_total,
+        team_total,
         avg_r_start_position,
         avg_r_finish_position,
         avg_r_place_diff,
@@ -123,14 +123,27 @@ BEGIN
         join nascar.seasons s on w.season_id = s.id and s.deleted_at is null
         join nascar.tracks t on w.track_id = t.id and t.deleted_at is null
         join nascar.races r on w.id = r.week_id and r.deleted_at is null
+        join current_week cw on w.track_id = cw.track_id
         where w.deleted_at IS NULL
             and s.series_id = p_series_id
             and w.id < p_week_id
+    ),
+    current_race_results_teams as (
+        select distinct t.id as team_id
+        from nascar.races r
+        join current_week cw on r.week_id = cw.week_id
+        join nascar.race_results rr on r.id = rr.race_id and rr.deleted_at is null
+        join nascar.cars_drivers cd on rr.car_driver_id = cd.id and cd.deleted_at is null
+        join nascar.drivers d on cd.driver_id = d.id and d.deleted_at is null
+        join nascar.cars c on cd.car_id = c.id and c.deleted_at is null
+        join nascar.teams t on c.team_id = t.id and t.deleted_at is null
+        where r.deleted_at is null
     ),
     agg_week_results as (
         select awr.*
         from agg_week_results awr
         join prior_weeks pw using (series_id, season_id, week_id, track_id, race_id)
+        join current_race_results_teams crrt on awr.team_id = crrt.team_id
         where awr.deleted_at IS NULL
     )
     select
@@ -139,7 +152,7 @@ BEGIN
         cw.week_id,
         cw.track_id,
         awr.team_id,
-        count(*) as team_car_total,
+        count(*) as team_total,
         ROUND(AVG(awr.r_start_position), 3) AS avg_r_start_position,
         ROUND(AVG(awr.r_finish_position), 3) AS avg_r_finish_position,
         ROUND(AVG(awr.r_place_diff), 3) AS avg_r_place_diff,
@@ -230,7 +243,7 @@ BEGIN
     from agg_week_results awr
     left join current_week cw on 1 = 1
     group by cw.series_id, cw.season_id, cw.week_id, cw.track_id, awr.team_id
-    order by awr.series_id, awr.season_id, awr.week_id, awr.track_id, awr.r_finish_position
+    order by awr.series_id, awr.season_id, awr.week_id, awr.track_id, avg_r_finish_position
 	;
 END$$
 DELIMITER ;
