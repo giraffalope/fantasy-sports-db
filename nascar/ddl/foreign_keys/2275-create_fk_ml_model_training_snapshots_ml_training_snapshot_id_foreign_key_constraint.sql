@@ -1,0 +1,1 @@
+ALTER TABLE `ml_model_training_snapshots` ADD CONSTRAINT `fk_ml_model_training_snapshots_ml_training_snapshot_id` FOREIGN KEY (`ml_training_snapshot_id`) REFERENCES `ml_training_snapshots` (`id`) ON DELETE CASCADE;

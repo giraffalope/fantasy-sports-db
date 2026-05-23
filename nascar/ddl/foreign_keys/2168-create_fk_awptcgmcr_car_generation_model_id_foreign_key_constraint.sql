@@ -1,0 +1,1 @@
+ALTER TABLE `agg_week_prev_track_cgm_cars_results` ADD CONSTRAINT `fk_awptcgmcr_car_generation_model_id` FOREIGN KEY (`car_generation_model_id`) REFERENCES `car_generation_models` (`id`) ON DELETE CASCADE;

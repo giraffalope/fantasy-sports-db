@@ -21,14 +21,12 @@ WITH base AS (
     JOIN nascar.seasons se ON se.id = awr.season_id
     JOIN nascar.car_generations cg ON cg.id = awr.car_generation_id
     JOIN nascar.manufacturers m ON m.id = awr.manufacturer_id
-    JOIN nascar.car_generation_models_seasons cgms ON cgms.id = awr.car_generation_models_seasons_id
-    JOIN nascar.car_generation_models cgm ON cgm.id = cgms.car_generation_model_id
+    JOIN nascar.car_generation_models cgm ON cgm.id = awr.car_generation_model_id
     WHERE awr.deleted_at IS NULL
       AND s.deleted_at IS NULL
       AND se.deleted_at IS NULL
       AND cg.deleted_at IS NULL
       AND m.deleted_at IS NULL
-      AND cgms.deleted_at IS NULL
       AND cgm.deleted_at IS NULL
       AND awr.r_finish_position IS NOT NULL
 ),

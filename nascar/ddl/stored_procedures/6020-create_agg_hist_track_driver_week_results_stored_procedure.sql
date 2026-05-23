@@ -9,7 +9,9 @@ SELECT
     awr.series_id,
     awr.track_id,
     awr.driver_id,
-    awr.car_generation_models_seasons_id,
+    awr.car_generation_id,
+    awr.car_generation_model_id,
+    awr.manufacturer_id,
 
     MIN(awr.r_start_position) AS r_min_start_position,
     MAX(awr.r_start_position) AS r_max_start_position,
@@ -360,7 +362,7 @@ SELECT
     ROUND(AVG(awr.pf_10_lap_end), 3) AS pf_avg_10_lap_end
 
 FROM nascar.agg_week_results awr
-GROUP BY awr.series_id, awr.track_id, awr.driver_id, awr.car_generation_models_seasons_id
-ORDER BY series_id, track_id, car_generation_models_seasons_id, r_avg_finish_position, r_avg_start_position;
+GROUP BY awr.series_id, awr.track_id, awr.driver_id, awr.car_generation_id, awr.car_generation_model_id, awr.manufacturer_id
+ORDER BY series_id, track_id, car_generation_id, car_generation_model_id, manufacturer_id, r_avg_finish_position, r_avg_start_position;
 END$$
 DELIMITER ;

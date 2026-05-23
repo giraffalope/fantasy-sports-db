@@ -1,0 +1,22 @@
+CREATE TABLE `ml_training_snapshots` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Surrogate primary key.',
+  `series_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.series.',
+  `season_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.seasons.',
+  `week_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.weeks.',
+  `track_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.tracks for the predicted race week.',
+  `grain` varchar(32) NOT NULL DEFAULT 'car_driver' COMMENT 'Training row grain (car_driver, driver, team, ...).',
+  `feature_keys` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Ordered JSON array of feature column names for this snapshot.' CHECK (json_valid(`feature_keys`)),
+  `feature_column_count` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Number of keys in feature_keys.',
+  `feature_schema_hash` char(64) NOT NULL COMMENT 'SHA-256 hex of canonical feature_keys JSON for compare across builds.',
+  `target_keys` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Ordered JSON array of label stat columns the model predicts.' CHECK (json_valid(`target_keys`)),
+  `target_column_count` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Number of keys in target_keys.',
+  `target_schema_hash` char(64) NOT NULL COMMENT 'SHA-256 hex of canonical target_keys JSON for compare across builds.',
+  `dfs_id` bigint(20) unsigned NOT NULL COMMENT 'DFS site for scoring rules and snapshot identity (DraftKings, FanDuel).',
+  `dfs_scoring_rules_id` bigint(20) unsigned NOT NULL COMMENT 'Scoring rules version used for labels.',
+  `source_pipeline_version` varchar(64) DEFAULT NULL COMMENT 'Build identifier (git sha, semver).',
+  `built_at` timestamp NULL DEFAULT current_timestamp() COMMENT 'When this snapshot was materialized.',
+  `created_at` timestamp NULL DEFAULT current_timestamp() COMMENT 'Creation timestamp.',
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last update timestamp.',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft-delete timestamp; NULL means active.',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='Header for a materialized ML feature matrix for one race week.';
