@@ -3,8 +3,10 @@
 -- AI GENERATED QUERY FUCKED UP, DO NOT TRUST. REVIEW CAREFULLY BEFORE RUNNING.
 DROP PROCEDURE IF EXISTS `load_agg_week_results`;
 DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_results`()
-    COMMENT 'Load weekly aggregate race features for weeks that have race results but no active agg_week_results rows, or with active rows having NULL finish position.'
+CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_results`(
+    IN p_series_id BIGINT UNSIGNED
+)
+    COMMENT 'Load weekly aggregate race features for weeks (scoped to a single series via p_series_id) that have race results but no active agg_week_results rows, or with active rows having NULL finish position.'
 BEGIN
     insert into `nascar`.`agg_week_results` (
         series_id,
@@ -142,6 +144,7 @@ BEGIN
             join nascar.seasons s on w.season_id = s.id and s.deleted_at is null
             join nascar.series sr on s.series_id = sr.id and sr.deleted_at is null
             join nascar.tracks t on w.track_id = t.id and t.deleted_at is null
+            where sr.id = p_series_id
         ),
         seasons as (
             select distinct

@@ -5,6 +5,7 @@ CREATE TABLE `ml_training_snapshots` (
   `week_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.weeks.',
   `track_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.tracks for the predicted race week.',
   `grain` varchar(32) NOT NULL DEFAULT 'car_driver' COMMENT 'Training row grain (car_driver, driver, team, ...).',
+  `kind` varchar(16) NOT NULL DEFAULT 'train' COMMENT 'Snapshot kind: train (finished race, labels present) or predict (pre-race, labels absent).',
   `feature_keys` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Ordered JSON array of feature column names for this snapshot.' CHECK (json_valid(`feature_keys`)),
   `feature_column_count` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Number of keys in feature_keys.',
   `feature_schema_hash` char(64) NOT NULL COMMENT 'SHA-256 hex of canonical feature_keys JSON for compare across builds.',
