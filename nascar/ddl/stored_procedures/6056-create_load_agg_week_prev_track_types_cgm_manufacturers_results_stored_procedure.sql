@@ -17,6 +17,7 @@ BEGIN
         season_id,
         week_id,
         track_type_id,
+        manufacturer_id,
         car_generation_id,
         car_generation_model_id,
         car_generation_model_total,
@@ -142,7 +143,7 @@ BEGIN
         where r.deleted_at is null
     ),
     current_race_results_car_generations as (
-        select distinct awr_curr.car_generation_id, awr_curr.car_generation_model_id
+        select distinct crrm.manufacturer_id, awr_curr.car_generation_id, awr_curr.car_generation_model_id
         from nascar.agg_week_results awr_curr
         join current_week cw
           on awr_curr.week_id = cw.week_id
@@ -158,6 +159,7 @@ BEGIN
         join current_race_results_car_generations crrcg
            on awr.car_generation_id = crrcg.car_generation_id
           and awr.car_generation_model_id = crrcg.car_generation_model_id
+          and awr.manufacturer_id = crrcg.manufacturer_id
         where awr.deleted_at IS NULL
     )
     select
@@ -165,6 +167,7 @@ BEGIN
         cw.season_id,
         cw.week_id,
         cw.track_type_id,
+        crrcg.manufacturer_id,
         awr.car_generation_id,
         awr.car_generation_model_id,
         count(*) as car_generation_model_total,
@@ -257,7 +260,11 @@ BEGIN
         ROUND(AVG(awr.pf_10_lap_end), 3) AS avg_pf_10_lap_end
     from agg_week_results awr
     left join current_week cw on 1 = 1
-    group by cw.series_id, cw.season_id, cw.week_id, cw.track_type_id, awr.car_generation_id, awr.car_generation_model_id
+    join current_race_results_car_generations crrcg
+       on awr.car_generation_id = crrcg.car_generation_id
+      and awr.manufacturer_id = crrcg.manufacturer_id
+      and awr.car_generation_model_id = crrcg.car_generation_model_id
+    group by cw.series_id, cw.season_id, cw.week_id, cw.track_type_id, crrcg.manufacturer_id, awr.car_generation_id, awr.car_generation_model_id
     order by awr.series_id, awr.season_id, awr.week_id, awr.track_id, avg_r_finish_position
 	;
 END$$

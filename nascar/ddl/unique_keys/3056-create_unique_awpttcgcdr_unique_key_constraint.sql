@@ -1,1 +1,1 @@
-ALTER TABLE `agg_week_prev_track_types_cg_cars_drivers_results` ADD UNIQUE KEY `unique_awpttcgcdr_series_season_week_track_type_car_gen` (`series_id`,`season_id`,`week_id`,`track_type_id`,`car_generation_id`);
+ALTER TABLE `agg_week_prev_track_types_cg_cars_drivers_results` ADD UNIQUE KEY `unique_awpttcgcdr_sswtt_cd_cgen` (`series_id`,`season_id`,`week_id`,`track_type_id`,`car_driver_id`,`car_generation_id`);

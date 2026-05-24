@@ -1,13 +1,75 @@
 -- load_agg_week_results: stored procedure used by NASCAR hourly aggregate backfill pipeline.
 -- Provide/maintain business context using fantasy-sports-airflow DAG and SQL usage when editing this object.
--- AI GENERATED QUERY FUCKED UP, DO NOT TRUST. REVIEW CAREFULLY BEFORE RUNNING.
 DROP PROCEDURE IF EXISTS `load_agg_week_results`;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_results`(
     IN p_series_id BIGINT UNSIGNED
 )
-    COMMENT 'Load weekly aggregate race features for weeks (scoped to a single series via p_series_id) that have race results but no active agg_week_results rows, or with active rows having NULL finish position.'
+    COMMENT 'Backfill agg_week_results for weeks with race_results through current_week that lack base rows; refresh current_week when race_results are newer or in-progress. Historical finished weeks are not re-merged.'
 BEGIN
+  -- Weeks to (re)build: missing base rows through current_week, or current_week only when stale/in-progress.
+    DROP TEMPORARY TABLE IF EXISTS tmp_awr_weeks_to_update;
+    CREATE TEMPORARY TABLE tmp_awr_weeks_to_update (
+        week_id BIGINT UNSIGNED PRIMARY KEY,
+        had_existing_rows TINYINT UNSIGNED NOT NULL DEFAULT 0
+    ) ENGINE=MEMORY;
+
+    INSERT INTO tmp_awr_weeks_to_update (week_id, had_existing_rows)
+    WITH
+        current_week AS (
+            SELECT MAX(w.id) AS week_id
+            FROM nascar.race_results rr
+            JOIN nascar.races r ON rr.race_id = r.id AND r.deleted_at IS NULL
+            JOIN nascar.weeks w ON r.week_id = w.id AND w.deleted_at IS NULL
+            JOIN nascar.seasons s ON w.season_id = s.id AND s.deleted_at IS NULL
+            WHERE rr.deleted_at IS NULL
+              AND s.series_id = p_series_id
+        ),
+        week_race_activity AS (
+            SELECT w.id AS week_id, MAX(rr.updated_at) AS max_rr_updated_at
+            FROM nascar.race_results rr
+            JOIN nascar.races r ON rr.race_id = r.id AND r.deleted_at IS NULL
+            JOIN nascar.weeks w ON r.week_id = w.id AND w.deleted_at IS NULL
+            JOIN nascar.seasons s ON w.season_id = s.id AND s.deleted_at IS NULL
+            JOIN current_week cw ON cw.week_id IS NOT NULL
+            WHERE rr.deleted_at IS NULL
+              AND s.series_id = p_series_id
+              AND w.id <= cw.week_id
+            GROUP BY w.id
+        ),
+        week_agg_state AS (
+            SELECT awr.week_id,
+                   MAX(awr.updated_at) AS max_awr_updated_at,
+                   SUM(CASE WHEN awr.r_finish_position IS NOT NULL THEN 1 ELSE 0 END) AS finished_row_count,
+                   COUNT(*) AS agg_row_count
+            FROM nascar.agg_week_results awr
+            WHERE awr.deleted_at IS NULL
+              AND awr.series_id = p_series_id
+            GROUP BY awr.week_id
+        )
+    SELECT wra.week_id,
+           CASE WHEN COALESCE(was.agg_row_count, 0) > 0 THEN 1 ELSE 0 END AS had_existing_rows
+    FROM week_race_activity wra
+    LEFT JOIN week_agg_state was ON was.week_id = wra.week_id
+    JOIN current_week cw ON cw.week_id IS NOT NULL
+    WHERE was.agg_row_count IS NULL
+       OR (
+            wra.week_id = cw.week_id
+            AND (
+                wra.max_rr_updated_at > COALESCE(was.max_awr_updated_at, TIMESTAMP '1970-01-01 00:00:00')
+                OR (
+                    COALESCE(was.agg_row_count, 0) > 0
+                    AND COALESCE(was.finished_row_count, 0) = 0
+                )
+            )
+       );
+
+    DELETE awr
+    FROM nascar.agg_week_results awr
+    JOIN tmp_awr_weeks_to_update wu ON wu.week_id = awr.week_id
+    WHERE awr.series_id = p_series_id
+      AND wu.had_existing_rows = 1;
+
     insert into `nascar`.`agg_week_results` (
         series_id,
         season_id,
@@ -111,27 +173,8 @@ BEGIN
         pf_10_lap_end
     )
         with
-        week_race_results as (
-            select distinct
-                r.week_id
-            from nascar.race_results rr
-            join nascar.races r on rr.race_id = r.id and r.deleted_at is null
-            join nascar.weeks w on r.week_id = w.id and w.deleted_at is null
-            where rr.deleted_at is null
-        ),
-        -- want rows that don't have finish position set to rerun
-        week_results as (
-            select distinct
-                awr.week_id
-            from nascar.agg_week_results awr
-            where awr.deleted_at is null and awr.r_finish_position is not null
-        ),
         week_results_to_update as (
-            select week_id
-            from week_race_results
-            except
-            select week_id
-            from week_results
+            select week_id from tmp_awr_weeks_to_update
         ),
         weeks as (
             select 
@@ -603,5 +646,7 @@ BEGIN
         LEFT JOIN weeks_practices_results_final prf USING (series_id, season_id, week_id, track_id, car_driver_id, car_id, manufacturer_id, team_id, driver_id)
         ORDER BY rr.series_id, rr.season_id, rr.week_id, rr.finish_position, rr.start_position
     ;
+
+    DROP TEMPORARY TABLE IF EXISTS tmp_awr_weeks_to_update;
 END$$
 DELIMITER ;

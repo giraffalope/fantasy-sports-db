@@ -4,6 +4,7 @@ CREATE TABLE `agg_week_prev_track_cgm_manufacturers_results` (
   `season_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.seasons, indicating the season for which this week''s statistics apply.',
   `week_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.weeks, indicating the week for which this week''s statistics apply.',
   `track_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.tracks, indicating the track for which this week''s statistics apply.',
+  `manufacturer_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.manufacturers, the current-week manufacturer whose prior-track car-generation stats are aggregated.',
   `car_generation_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generations, indicating the generation for this week''s statistics.',
   `car_generation_model_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to nascar.car_generation_models, indicating the car generation model for this week''s statistics.',
   `car_generation_model_total` int(10) unsigned DEFAULT NULL COMMENT 'Total count for the car generation model grain for prior races at this track.',

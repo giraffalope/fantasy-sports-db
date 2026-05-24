@@ -192,12 +192,29 @@ def write_fk_index_uk(
         )
         i += 1
 
-    uk_cols = ["series_id", "season_id", "week_id", gcol, "car_generation_id"]
+    entity_col = None
+    for src in SOURCES:
+        if src["abbr_cg"] == abbr or src["abbr_cgm"] == abbr:
+            entity_col = src["entity_col"]
+            break
+    if entity_col is None:
+        raise ValueError(f"unknown abbr {abbr} for unique key generation")
+    ent_abbr = {
+        "car_driver_id": "cd",
+        "car_id": "car",
+        "driver_id": "drv",
+        "manufacturer_id": "mfr",
+        "team_id": "team",
+    }[entity_col]
+    geo = "sswtt" if is_types else "sswt"
+    uk_cols = ["series_id", "season_id", "week_id", gcol, entity_col, "car_generation_id"]
     if is_cgm:
         uk_cols.append("car_generation_model_id")
-    uk_name = f"unique_{abbr}_series_season_week_{glabel}_car_gen"
+    uk_name = f"unique_{abbr}_{geo}_{ent_abbr}_cgen"
     if is_cgm:
-        uk_name += "_model"
+        uk_name += "_mdl"
+    if len(uk_name) > 64:
+        raise ValueError(f"unique key name too long: {uk_name} ({len(uk_name)})")
     (UK / f"{uk_num}-create_unique_{abbr}_unique_key_constraint.sql").write_text(
         f"ALTER TABLE `{table}` ADD UNIQUE KEY `{uk_name}` (`{'`,`'.join(uk_cols)}`);\n"
     )
@@ -205,7 +222,7 @@ def write_fk_index_uk(
 
 
 def cg_cte_block(entity_cte: str, entity_alias: str, entity_col: str, is_cgm: bool) -> str:
-    cols = "awr_curr.car_generation_id"
+    cols = f"{entity_alias}.{entity_col}, awr_curr.car_generation_id"
     if is_cgm:
         cols += ", awr_curr.car_generation_model_id"
     join_entity = f"join {entity_cte} {entity_alias} on awr_curr.{entity_col} = {entity_alias}.{entity_col}"
@@ -255,10 +272,15 @@ def transform_sp(source_sp_path: Path, cfg: dict, target_table: str, is_cgm: boo
         new_join = (
             "join current_race_results_car_generations crrcg\n"
             "           on awr.car_generation_id = crrcg.car_generation_id\n"
+            f"          and awr.{entity_col} = crrcg.{entity_col}\n"
             "          and awr.car_generation_model_id = crrcg.car_generation_model_id"
         )
     else:
-        new_join = "join current_race_results_car_generations crrcg on awr.car_generation_id = crrcg.car_generation_id"
+        new_join = (
+            "join current_race_results_car_generations crrcg\n"
+            "           on awr.car_generation_id = crrcg.car_generation_id\n"
+            f"          and awr.{entity_col} = crrcg.{entity_col}"
+        )
     text = text.replace(old_join, new_join)
 
     # INSERT column list: replace entity cols with generation cols
