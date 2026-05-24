@@ -5,9 +5,9 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_results`(
     IN p_series_id BIGINT UNSIGNED
 )
-    COMMENT 'Backfill agg_week_results for weeks with race_results through current_week that lack base rows; refresh current_week when race_results are newer or in-progress. Historical finished weeks are not re-merged.'
+    COMMENT 'Backfill agg_week_results for historical race weeks missing base rows; always refresh current_week from v_series_current_week.'
 BEGIN
-  -- Weeks to (re)build: missing base rows through current_week, or current_week only when stale/in-progress.
+  -- Weeks to (re)build: missing base rows before current_week, or current_week every run.
     DROP TEMPORARY TABLE IF EXISTS tmp_awr_weeks_to_update;
     CREATE TEMPORARY TABLE tmp_awr_weeks_to_update (
         week_id BIGINT UNSIGNED PRIMARY KEY,
@@ -17,13 +17,9 @@ BEGIN
     INSERT INTO tmp_awr_weeks_to_update (week_id, had_existing_rows)
     WITH
         current_week AS (
-            SELECT MAX(w.id) AS week_id
-            FROM nascar.race_results rr
-            JOIN nascar.races r ON rr.race_id = r.id AND r.deleted_at IS NULL
-            JOIN nascar.weeks w ON r.week_id = w.id AND w.deleted_at IS NULL
-            JOIN nascar.seasons s ON w.season_id = s.id AND s.deleted_at IS NULL
-            WHERE rr.deleted_at IS NULL
-              AND s.series_id = p_series_id
+            SELECT week_id
+            FROM nascar.v_series_current_week
+            WHERE series_id = p_series_id
         ),
         week_race_activity AS (
             SELECT w.id AS week_id, MAX(rr.updated_at) AS max_rr_updated_at
@@ -36,6 +32,17 @@ BEGIN
               AND s.series_id = p_series_id
               AND w.id <= cw.week_id
             GROUP BY w.id
+            UNION
+            SELECT cw.week_id, TIMESTAMP '1970-01-01 00:00:00'
+            FROM current_week cw
+            WHERE cw.week_id IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM nascar.race_results rr
+                  JOIN nascar.races r ON rr.race_id = r.id AND r.deleted_at IS NULL
+                  WHERE rr.deleted_at IS NULL
+                    AND r.week_id = cw.week_id
+              )
         ),
         week_agg_state AS (
             SELECT awr.week_id,
@@ -53,16 +60,7 @@ BEGIN
     LEFT JOIN week_agg_state was ON was.week_id = wra.week_id
     JOIN current_week cw ON cw.week_id IS NOT NULL
     WHERE was.agg_row_count IS NULL
-       OR (
-            wra.week_id = cw.week_id
-            AND (
-                wra.max_rr_updated_at > COALESCE(was.max_awr_updated_at, TIMESTAMP '1970-01-01 00:00:00')
-                OR (
-                    COALESCE(was.agg_row_count, 0) > 0
-                    AND COALESCE(was.finished_row_count, 0) = 0
-                )
-            )
-       );
+       OR wra.week_id = cw.week_id;
 
     DELETE awr
     FROM nascar.agg_week_results awr
