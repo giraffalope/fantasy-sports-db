@@ -1,8 +1,8 @@
 -- season_manufacturer_race_results_overview: view used by NASCAR analytics workflows.
 -- Provide/maintain business context using fantasy-sports-airflow DAG and SQL usage when editing this object.
 
-DROP VIEW IF EXISTS `season_manufacturer_race_results_overview`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `season_manufacturer_race_results_overview` AS
+DROP VIEW IF EXISTS `v_season_manufacturer_race_results_overview`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_season_manufacturer_race_results_overview` AS
 WITH base AS (
     SELECT
         awr.id AS awr_id,

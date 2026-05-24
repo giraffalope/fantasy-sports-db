@@ -1,8 +1,8 @@
 -- car_editions: view used by NASCAR ingest, enrichment, and analytics workflows.
 -- Provide/maintain business context using fantasy-sports-airflow DAG and SQL usage when editing this object.
 
-DROP VIEW IF EXISTS `car_editions`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `car_editions` AS
+DROP VIEW IF EXISTS `v_car_editions`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_car_editions` AS
 SELECT
     s.name AS series,
     se.year AS year,

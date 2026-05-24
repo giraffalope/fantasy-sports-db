@@ -129,13 +129,13 @@ BEGIN
             and w.id < p_week_id
     ),
     current_race_results_car_generations as (
-        select distinct c.car_generation_id
-        from nascar.races r
-        join current_week cw on r.week_id = cw.week_id
-        join nascar.race_results rr on r.id = rr.race_id and rr.deleted_at is null
-        join nascar.cars_drivers cd on rr.car_driver_id = cd.id and cd.deleted_at is null
-        join nascar.cars c on cd.car_id = c.id and c.deleted_at is null
-        where r.deleted_at is null
+        select distinct awr_curr.car_generation_id
+        from nascar.agg_week_results awr_curr
+        join current_week cw
+          on awr_curr.week_id = cw.week_id
+         and awr_curr.season_id = cw.season_id
+         and awr_curr.series_id = cw.series_id
+        where awr_curr.deleted_at is null
     ),
     agg_week_results as (
         select awr.*

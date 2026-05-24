@@ -1,8 +1,8 @@
 -- ingestion_overview: view used by NASCAR ingest, enrichment, and analytics workflows.
 -- Provide/maintain business context using fantasy-sports-airflow DAG and SQL usage when editing this object.
 
-DROP VIEW IF EXISTS `ingestion_overview`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `ingestion_overview` AS
+DROP VIEW IF EXISTS `v_ingestion_overview`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_ingestion_overview` AS
 WITH schedule AS (
     SELECT
         s.name as series_name,

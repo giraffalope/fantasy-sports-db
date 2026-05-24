@@ -110,6 +110,18 @@ The NASCAR schema is organized under a sport root folder:
 MariaDB executes init files lexically, so file numbering controls deterministic execution order.
 Seed scripts are one file per target table (for example, all `data_sources` inserts in one file).
 
+Current NASCAR seeds:
+
+- `9001-insert_dfs_seed.sql` — DraftKings provider row (`id=1`) for ML (`DRAFTKINGS_DFS_ID`).
+- `9002-insert_dfs_scoring_rules_seed.sql` — DraftKings Cup scoring rules (`cup_default`, version 1).
+
+On a database that was initialized before these seeds existed, apply them with:
+
+```bash
+docker exec -i mariadb mariadb -uroot -p"$PASSWORD" -Dnascar < nascar/seed/9001-insert_dfs_seed.sql
+docker exec -i mariadb mariadb -uroot -p"$PASSWORD" -Dnascar < nascar/seed/9002-insert_dfs_scoring_rules_seed.sql
+```
+
 ## Quick Start with Scripts
 
 The repository includes convenient shell scripts for common operations:
