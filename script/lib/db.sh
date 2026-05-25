@@ -53,27 +53,21 @@ db_query_scalar() {
         -e "$_sql" 2>/dev/null | tr -d '\r'
 }
 
-db_query_interactive_file() {
-    {
-        printf '%s\n' 'pager less -SFX;'
-        cat "$1"
-    } | db_mariadb_base
+db_query_file() {
+    db_mariadb_base <"$1"
 }
 
-db_query_interactive_sql() {
+db_query_sql() {
     docker exec -i "$DB_CONTAINER_NAME" mariadb \
         -t \
         -u"$DB_USER" \
         -p"$DB_PASSWORD" \
         "$DB_NAME" \
-        -e "pager less -SFX; $1"
+        -e "$1"
 }
 
-db_query_interactive_stdin() {
-    {
-        printf '%s\n' 'pager less -SFX;'
-        cat
-    } | db_mariadb_base
+db_query_stdin() {
+    db_mariadb_base
 }
 
 db_ensure_schema_migrations_table() {

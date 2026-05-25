@@ -25,7 +25,7 @@ Do not copy `nascar/migrations/` into the Docker image init path. Migrations are
 
 ## Scripts
 
-- `./script/query` — run SQL (file, argument, or stdin); sets `pager less -SFX` before your SQL.
+- `./script/query` — run SQL (file, argument, or stdin); pipe to `less` yourself if needed.
 - `./script/migrate` — apply one migration file; records basename in `nascar.schema_migrations`; refuses duplicates.
 
 Server must be running (`./script/server`). Default host port: **36000** (`DATABASE_PORT` in `.env`).

@@ -258,11 +258,12 @@ Stop and remove the container and Docker image:
 
 ### Query (ad-hoc SQL)
 
-Run SQL against the running container (no migration ledger). Sets `pager less -SFX` before your SQL:
+Run SQL against the running container (no migration ledger):
 
 ```bash
 ./script/query "SELECT COUNT(*) FROM nascar.weeks"
 ./script/query -f nascar/queries/data-clean-up.sql
+./script/query "SELECT * FROM nascar.weeks LIMIT 10" | less -SFX
 ```
 
 Requires `./script/server` to be running.

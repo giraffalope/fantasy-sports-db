@@ -16,8 +16,7 @@ Usage:
   ./script/query --file path/to/file.sql
   ./script/query "SELECT COUNT(*) FROM nascar.weeks"
   echo "SELECT 1" | ./script/query
-
-Sets `pager less -SFX` before your SQL for readable wide result sets.
+  ./script/query "SELECT * FROM nascar.weeks LIMIT 10" | less -SFX
 
 Environment (from .env or shell):
   DB_CONTAINER_NAME   default: fantasy-sports-db
@@ -74,11 +73,11 @@ if [ -n "$sql_file" ]; then
         echo "SQL file not found: $sql_file" >&2
         exit 1
     fi
-    db_query_interactive_file "$sql_file"
+    db_query_file "$sql_file"
 elif [ -n "$sql_inline" ]; then
-    db_query_interactive_sql "$sql_inline"
+    db_query_sql "$sql_inline"
 elif [ ! -t 0 ]; then
-    db_query_interactive_stdin
+    db_query_stdin
 else
     echo "Provide -f FILE, a SQL argument, or stdin." >&2
     usage >&2

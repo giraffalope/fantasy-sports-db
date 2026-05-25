@@ -50,7 +50,7 @@
 - `nascar/queries` is for non-bootstrap SQL files only and must not be auto-executed by init entrypoints.
 
 ## Query and migrate scripts
-- `./script/query` — stateless SQL runner (file `-f`, inline argument, or stdin). Sets `pager less -SFX` before user SQL.
+- `./script/query` — stateless SQL runner (file `-f`, inline argument, or stdin).
 - `./script/migrate` — runs one migration file in batch mode (no pager), then inserts into `nascar.schema_migrations`.
 - Requires container `fantasy-sports-db` from `./script/server` (see `.env` for `DB_*` and `DATABASE_PORT`).
 
