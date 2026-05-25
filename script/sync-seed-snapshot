@@ -1,0 +1,21 @@
+#!/bin/sh
+# Copy the canonical NASCAR database snapshot into nascar/seed for Docker init.
+set -e
+[ -z "${DEBUG}" ] || set -x
+
+BASEDIR="$(dirname "$0")/.."
+cd "${BASEDIR}"
+
+DEST="nascar/seed/9000-load_nascar_database_snapshot.sql.gz"
+DEFAULT_SRC="${BASEDIR}/../fantasy-sports-airflow/db/backups/20260525T031712Z.sql.gz"
+SRC="${1:-${SEED_SNAPSHOT_SRC:-$DEFAULT_SRC}}"
+
+if [ ! -f "$SRC" ]; then
+  echo "Seed snapshot not found: $SRC" >&2
+  echo "Pass a path to the .sql.gz backup or set SEED_SNAPSHOT_SRC." >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "$DEST")"
+cp -f "$SRC" "$DEST"
+echo "Installed seed snapshot -> $DEST ($(du -h "$DEST" | cut -f1))"

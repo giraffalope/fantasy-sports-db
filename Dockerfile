@@ -5,8 +5,9 @@ FROM mariadb:latest
 ENV MYSQL_DATABASE=nascar
 ENV MARIADB_AUTO_UPGRADE=1
 
-# Copy NASCAR DDL subfolders first, then seed files.
-# MariaDB executes .sql files in lexical order after copy, so file numbering controls order.
+# Copy NASCAR DDL subfolders first, then seed files (including 9000-*.sql.gz snapshot).
+# MariaDB executes .sql and .sql.gz files in lexical order; numbering controls order.
+# Run ./script/sync-seed-snapshot before build if the snapshot is not present locally.
 COPY nascar/ddl/tables/ /docker-entrypoint-initdb.d/
 COPY nascar/ddl/foreign_keys/ /docker-entrypoint-initdb.d/
 COPY nascar/ddl/unique_keys/ /docker-entrypoint-initdb.d/

@@ -17,6 +17,7 @@ fi
 DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-root}"
 DB_USER="${DB_USER:-username}"
 DB_PASSWORD="${DB_PASSWORD:-password}"
+DATABASE_PORT="${DATABASE_PORT:-36000}"
 
 cleanup() {
     echo "Stopping MariaDB container..."
@@ -46,10 +47,10 @@ main() {
         -e MYSQL_USER="$DB_USER" \
         -e MYSQL_PASSWORD="$DB_PASSWORD" \
         -e MYSQL_DATABASE=nascar \
-        -p 3306:3306 \
+        -p "${DATABASE_PORT}:3306" \
         fantasy-sports-db:latest
     
-    echo "Database is running on localhost:3306"
+    echo "Database is running on localhost:${DATABASE_PORT}"
     echo "Database: nascar"
     echo ""
     echo "Credentials are configured via .env file"

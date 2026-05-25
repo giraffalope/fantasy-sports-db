@@ -5,3 +5,8 @@ set -e
 
 BASEDIR="$(dirname "$0")/.."
 cd "${BASEDIR}"
+
+chmod +x script/sync-seed-snapshot 2>/dev/null || true
+if [ -x script/sync-seed-snapshot ] && [ ! -f nascar/seed/9000-load_nascar_database_snapshot.sql.gz ]; then
+  ./script/sync-seed-snapshot
+fi

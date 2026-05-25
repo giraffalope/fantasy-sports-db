@@ -5,6 +5,7 @@
 - For NASCAR assets, use the canonical structure:
   - `nascar/ddl`
   - `nascar/seed`
+  - `nascar/migrations`
   - `nascar/queries`
   - DDL subfolders by object type:
     - `nascar/ddl/tables`
@@ -31,13 +32,38 @@
 - Stored procedures: `6XXX-create_{storedprocedurename}_stored_procedure.sql`
 - Views: `7XXX-create_{viewname}_view.sql`
 
+### Migration Naming (`nascar/migrations`)
+- Migration files: `YYYYMMDDTHHMMSS_short_description.sql` (one logical change per file).
+- Apply with `./script/migrate path/to/file.sql`; basename is stored in `nascar.schema_migrations`.
+- Not copied into Docker init; for existing databases only.
+- After shipping a migration, mirror the schema change into canonical `nascar/ddl/` so fresh installs stay equivalent.
+- Prefer idempotent SQL (`IF NOT EXISTS`, etc.).
+
 ### Seed Naming (`nascar/seed`)
-- Seed files: `XXXX-insert_{tablename}_seed.sql`
-- Keep one seed file per table (merge inserts for the same table into one file).
+- Table seed files: `XXXX-insert_{tablename}_seed.sql` (one file per table; merge inserts for the same table into one file).
+- Full-database snapshot: `9000-load_nascar_database_snapshot.sql.gz` (MariaDB executes `.sql.gz` in init; data-only dump after DDL).
+- Sync the snapshot before image build: `./script/sync-seed-snapshot` (see `nascar/seed/README.md`).
 
 ## Execution Contract
 - Container/database initialization must run all DDL files first (across `nascar/ddl` subfolders), then all seed files.
+- `nascar/migrations` must not be auto-executed by init entrypoints; use `./script/migrate` on running databases.
 - `nascar/queries` is for non-bootstrap SQL files only and must not be auto-executed by init entrypoints.
+
+## Query and migrate scripts
+- `./script/query` — stateless SQL runner (file `-f`, inline argument, or stdin). Sets `pager less -SFX` before user SQL.
+- `./script/migrate` — runs one migration file in batch mode (no pager), then inserts into `nascar.schema_migrations`.
+- Requires container `fantasy-sports-db` from `./script/server` (see `.env` for `DB_*` and `DATABASE_PORT`).
+
+## Schema changes (existing database)
+1. Add idempotent migration under `nascar/migrations/`.
+2. `./script/migrate nascar/migrations/….sql`.
+3. Update matching `nascar/ddl/` files for fresh-init parity.
+4. Rebuild/verify: `./script/build` and fresh volume init when DDL changed.
+
+## Schema changes (new objects on fresh install)
+1. Add DDL in the correct `nascar/ddl/` bands (see checklist below).
+2. Add seeds only if needed (`9XXX`).
+3. Add a migration only when live DBs already exist and cannot be rebuilt from DDL alone.
 
 ## Authoring Guidelines
 - Keep migrations deterministic and idempotent where practical.

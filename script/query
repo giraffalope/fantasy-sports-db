@@ -1,0 +1,86 @@
+#!/bin/sh
+# Run SQL against the running fantasy-sports-db container (no migration ledger).
+set -e
+[ -z "${DEBUG}" ] || set -x
+
+BASEDIR="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=script/lib/db.sh
+. "$BASEDIR/script/lib/db.sh"
+
+usage() {
+    cat <<'EOF'
+Run SQL against the local MariaDB container (./script/server must be running).
+
+Usage:
+  ./script/query -f path/to/file.sql
+  ./script/query --file path/to/file.sql
+  ./script/query "SELECT COUNT(*) FROM nascar.weeks"
+  echo "SELECT 1" | ./script/query
+
+Sets `pager less -SFX` before your SQL for readable wide result sets.
+
+Environment (from .env or shell):
+  DB_CONTAINER_NAME   default: fantasy-sports-db
+  DB_NAME             default: nascar
+  DB_USER / DB_PASSWORD
+  DATABASE_PORT       host port (container internal port is 3306)
+
+Options:
+  -f, --file PATH     Execute SQL from a file
+  -h, --help          Show this help
+EOF
+}
+
+sql_file=""
+sql_inline=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -f | --file)
+            shift
+            sql_file="${1:-}"
+            if [ -z "$sql_file" ]; then
+                echo "Missing path after $1" >&2
+                exit 1
+            fi
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            sql_inline="$*"
+            break
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            sql_inline="$*"
+            break
+            ;;
+    esac
+done
+
+db_load_env
+db_require_container
+
+if [ -n "$sql_file" ]; then
+    if [ ! -f "$sql_file" ]; then
+        echo "SQL file not found: $sql_file" >&2
+        exit 1
+    fi
+    db_query_interactive_file "$sql_file"
+elif [ -n "$sql_inline" ]; then
+    db_query_interactive_sql "$sql_inline"
+elif [ ! -t 0 ]; then
+    db_query_interactive_stdin
+else
+    echo "Provide -f FILE, a SQL argument, or stdin." >&2
+    usage >&2
+    exit 1
+fi

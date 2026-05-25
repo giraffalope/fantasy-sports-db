@@ -5,3 +5,6 @@
 .env
 .env.local
 *.env.local
+
+# Large bootstrap snapshot (sync via ./script/sync-seed-snapshot)
+nascar/seed/9000-load_nascar_database_snapshot.sql.gz

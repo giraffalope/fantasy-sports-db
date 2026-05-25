@@ -105,21 +105,29 @@ The NASCAR schema is organized under a sport root folder:
   - `nascar/ddl/indexes/`
   - `nascar/ddl/constraints/`
 - `nascar/seed/` - seed data scripts that run after all DDL
+- `nascar/migrations/` - forward migrations for existing DBs (not auto-executed on init)
 - `nascar/queries/` - non-bootstrap SQL query files only (not auto-executed)
 
 MariaDB executes init files lexically, so file numbering controls deterministic execution order.
 Seed scripts are one file per target table (for example, all `data_sources` inserts in one file).
 
-Current NASCAR seeds:
+Current NASCAR seeds (see `nascar/seed/README.md`):
 
-- `9001-insert_dfs_seed.sql` — DraftKings provider row (`id=1`) for ML (`DRAFTKINGS_DFS_ID`).
-- `9002-insert_dfs_scoring_rules_seed.sql` — DraftKings Cup scoring rules (`cup_default`, version 1).
+- `9000-load_nascar_database_snapshot.sql.gz` — full `nascar` data snapshot (INSERT-only dump). Sync before build:
+  ```bash
+  ./script/sync-seed-snapshot
+  ```
+  Default source: `../fantasy-sports-airflow/db/backups/20260525T031712Z.sql.gz`.
+- `9001-insert_dfs_seed.sql` — idempotent DraftKings provider row (`id=1`) for ML (`DRAFTKINGS_DFS_ID`).
+- `9002-insert_dfs_scoring_rules_seed.sql` — idempotent DraftKings Cup scoring rules (`cup_default`, version 1).
 
-On a database that was initialized before these seeds existed, apply them with:
+The snapshot already includes `dfs` and `dfs_scoring_rules`; `9001`/`9002` re-apply the same rows for partial seed updates.
+
+On a database that was initialized before the DFS seeds existed, apply them with:
 
 ```bash
-docker exec -i mariadb mariadb -uroot -p"$PASSWORD" -Dnascar < nascar/seed/9001-insert_dfs_seed.sql
-docker exec -i mariadb mariadb -uroot -p"$PASSWORD" -Dnascar < nascar/seed/9002-insert_dfs_scoring_rules_seed.sql
+./script/query -f nascar/seed/9001-insert_dfs_seed.sql
+./script/query -f nascar/seed/9002-insert_dfs_scoring_rules_seed.sql
 ```
 
 ## Quick Start with Scripts
@@ -170,13 +178,13 @@ Start the MariaDB database container:
 **What it does:**
 - Launches a Docker container running MariaDB with the fantasy-sports-db image
 - Initializes the database by running all scripts from DDL subfolders in `nascar/ddl/` first, then `nascar/seed/`
-- Exposes the database on `localhost:3306`
+- Exposes the database on `localhost:36000` (override with `DATABASE_PORT` in `.env`)
 - Streams container logs to the terminal
 - Gracefully shuts down on Ctrl+C (SIGINT/SIGTERM)
 
 **Default Connection Details:**
 - **Host:** `localhost` or `127.0.0.1`
-- **Port:** `3306`
+- **Port:** `36000` (host; `./script/server` default)
 - **Root User:** `root`
 - **Root Password:** `root` (default, from .env)
 - **Database:** `nascar`
@@ -221,12 +229,11 @@ The `script/server` automatically loads credentials from `.env`:
 
 **Example connection strings:**
 ```
-# Default
-mysql://root:root@localhost:3306/nascar
+# Default (./script/server)
+mysql://username:password@localhost:36000/nascar
 
-# Custom
-mysql://myuser:my_secure_user_pass@localhost:3306/nascar
-sql://root:my_secure_root_pass@localhost:3306/nascar
+# Root
+mysql://root:root@localhost:36000/nascar
 ```
 
 ### Clear Database
@@ -248,6 +255,27 @@ Stop and remove the container and Docker image:
 - Use before pushing changes to ensure a clean build
 - Use when debugging build issues
 - Use `DEBUG=1 ./script/clear-db` for verbose output
+
+### Query (ad-hoc SQL)
+
+Run SQL against the running container (no migration ledger). Sets `pager less -SFX` before your SQL:
+
+```bash
+./script/query "SELECT COUNT(*) FROM nascar.weeks"
+./script/query -f nascar/queries/data-clean-up.sql
+```
+
+Requires `./script/server` to be running.
+
+### Migrate (ledger-tracked)
+
+Apply one migration file and record it in `nascar.schema_migrations`:
+
+```bash
+./script/migrate nascar/migrations/20260525T000000_create_schema_migrations_table.sql
+```
+
+Re-running the same basename exits with an error. See `nascar/migrations/README.md`.
 
 ## Security Best Practices
 
@@ -317,7 +345,7 @@ nano .env
 
 ### Network Security
 
-- The database only listens on `localhost:3306` by default (safe for local development)
+- The database only listens on `localhost:36000` by default when using `./script/server` (safe for local development)
 - In production, use:
   - Private Docker networks
   - Firewall rules
@@ -340,7 +368,7 @@ To connect from the fantasy-sports-airflow or other applications:
 // Example Node.js connection
 const connection = await mariadb.createConnection({
   host: 'localhost',
-  port: 3306,
+  port: 36000,
   user: 'root',
   password: 'root',
   database: 'nascar'
@@ -355,10 +383,10 @@ mysql -u root -proot -h localhost -D nascar
 ## Troubleshooting
 
 ### Port Already in Use
-If port 3306 is already in use:
+If port 36000 is already in use:
 ```bash
-# Find what's using port 3306
-lsof -i :3306
+# Find what's using port 36000
+lsof -i :36000
 
 # Stop the container
 ./script/clear-db
@@ -372,8 +400,13 @@ lsof -i :3306
 ### Schema Issues
 If you've modified DDL or seed files:
 ```bash
-# Rebuild and restart
+# Rebuild and restart (fresh volume replays DDL + seed only)
 ./script/clear-db
-./script/setup
+./script/build
 ./script/server
+```
+
+If you've changed an **existing** database without rebuilding:
+```bash
+./script/migrate nascar/migrations/YYYYMMDDTHHMMSS_your_change.sql
 ```
