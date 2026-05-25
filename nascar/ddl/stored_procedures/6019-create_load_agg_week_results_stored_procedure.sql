@@ -5,7 +5,7 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_results`(
     IN p_series_id BIGINT UNSIGNED
 )
-    COMMENT 'Backfill agg_week_results for historical race weeks missing base rows; always refresh current_week from v_series_current_week.'
+    COMMENT 'Backfill agg_week_results for historical race weeks missing base rows; always refresh current_week. Includes finished races and open-race rows (start_position set, finish null) for ML predict.'
 BEGIN
   -- Weeks to (re)build: missing base rows before current_week, or current_week every run.
     DROP TEMPORARY TABLE IF EXISTS tmp_awr_weeks_to_update;
@@ -535,7 +535,10 @@ BEGIN
             LEFT JOIN weeks_races_pitstops_2r_totals pt2r USING (race_id, car_driver_id)
             LEFT JOIN weeks_races_penalties pn USING (race_id, car_driver_id)
             WHERE rr.deleted_at IS NULL
-                AND rr.finish_position IS NOT NULL
+                AND (
+                    rr.finish_position IS NOT NULL
+                    OR rr.start_position IS NOT NULL
+                )
         )
         SELECT
             rr.series_id AS series_id,
