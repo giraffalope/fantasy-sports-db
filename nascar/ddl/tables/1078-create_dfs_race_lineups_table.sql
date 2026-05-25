@@ -2,7 +2,6 @@ CREATE TABLE `dfs_race_lineups` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Surrogate primary key.',
   `dfs_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to DFS provider.',
   `race_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to race.',
-  `strategy` enum('DOUBLE_UP','HIGH_RISK_REWARD') NOT NULL COMMENT 'Lineup strategy bucket.',
   `projected_points_total` decimal(14,2) unsigned NOT NULL COMMENT 'Sum of projected DFS points for lineup drivers.',
   `salary_total` int(10) unsigned NOT NULL COMMENT 'Sum of DraftKings salaries for lineup drivers.',
   `created_at` timestamp NULL DEFAULT current_timestamp() COMMENT 'Creation timestamp.',

@@ -1,0 +1,1 @@
+ALTER TABLE `ml_race_simulation_driver_summaries` ADD CONSTRAINT `fk_ml_race_simulation_driver_summaries_car_driver_id` FOREIGN KEY (`car_driver_id`) REFERENCES `cars_drivers` (`id`) ON DELETE CASCADE;

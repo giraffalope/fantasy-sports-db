@@ -1,0 +1,1 @@
+ALTER TABLE `ml_race_simulation_driver_summaries` ADD CONSTRAINT `fk_ml_race_simulation_driver_summaries_batch_id` FOREIGN KEY (`ml_race_simulation_batch_id`) REFERENCES `ml_race_simulation_batches` (`id`) ON DELETE CASCADE;
