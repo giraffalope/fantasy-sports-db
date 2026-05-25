@@ -115,9 +115,9 @@ Current NASCAR seeds (see `nascar/seed/README.md`):
 
 - `9000-load_nascar_database_snapshot.sql.gz` — full `nascar` data snapshot (INSERT-only dump). Sync before build:
   ```bash
-  ./script/sync-seed-snapshot
+  cd ../fantasy-sports-airflow && ./script/db-backup --sync
   ```
-  Default source: `../fantasy-sports-airflow/db/backups/20260525T031712Z.sql.gz`.
+  Or copy an existing backup: `./script/sync-seed-snapshot [path/to/backup.sql.gz]`.
 - `9001-insert_dfs_seed.sql` — idempotent DraftKings provider row (`id=1`) for ML (`DRAFTKINGS_DFS_ID`).
 - `9002-insert_dfs_scoring_rules_seed.sql` — idempotent DraftKings Cup scoring rules (`cup_default`, version 1).
 
@@ -277,6 +277,8 @@ Apply one migration file and record it in `nascar.schema_migrations`:
 ```
 
 Re-running the same basename exits with an error. See `nascar/migrations/README.md`.
+
+Airflow pipelines in the sibling **fantasy-sports-airflow** repo call these stored procedures; deploy migrations on running databases before expecting DAG-side fixes to take effect. When using the Airflow Docker Compose stack, run migrations from that repo with `./script/db-migrate ../fantasy-sports-db/nascar/migrations/<file>.sql` (targets the Compose **mariadb** service).
 
 ## Security Best Practices
 

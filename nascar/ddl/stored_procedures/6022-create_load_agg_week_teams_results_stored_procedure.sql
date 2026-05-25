@@ -10,6 +10,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `load_agg_week_teams_results`(
 )
     COMMENT 'Load agg_week_teams_results for p_series_id and p_week_id.'
 BEGIN
+    DELETE FROM nascar.agg_week_teams_results
+    WHERE series_id = p_series_id
+      AND week_id = p_week_id;
+
     insert into nascar.agg_week_teams_results (
         series_id,
         season_id,

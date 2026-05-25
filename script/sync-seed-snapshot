@@ -1,5 +1,6 @@
 #!/bin/sh
 # Copy the canonical NASCAR database snapshot into nascar/seed for Docker init.
+# For a fresh dump from the Airflow MariaDB stack, use ../fantasy-sports-airflow/script/db-backup --sync
 set -e
 [ -z "${DEBUG}" ] || set -x
 
