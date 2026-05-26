@@ -1,6 +1,6 @@
 -- Monte Carlo race simulation tables: batch header + per-driver DFS-point summaries.
 -- Canonical DDL: nascar/ddl/tables/1082-*.sql, 1083-*.sql plus FK/unique/index files.
--- Consumed by nascar.cup.machine_learning.monte_carlo and nascar.cup.dfs.lineup_generator.
+-- Consumed by nascar.cup.machine_learning.models.monte_carlo and nascar.cup.dfs.lineup_generator.
 
 CREATE TABLE IF NOT EXISTS `ml_race_simulation_batches` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Surrogate primary key.',
