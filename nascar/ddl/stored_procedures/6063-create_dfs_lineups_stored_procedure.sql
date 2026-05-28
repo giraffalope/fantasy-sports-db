@@ -1,7 +1,7 @@
 -- dfs_lineups: stored procedure used by NASCAR DFS read-time consumers.
 -- Provide/maintain business context using fantasy-sports-airflow DAG and SQL usage when editing this object.
 --
--- Server-side greedy exposure-capped lineup selection for one (race, strategy).
+-- Server-side greedy lineup-difference selection for one (race, strategy).
 -- Mirrors the Python `greedy_diversify` in fantasy-sports-airflow
 -- include/nascar/dfs/lineup_portfolio.py but operates over the persisted pool
 -- in nascar.dfs_race_lineups instead of a candidate pool. Read-only.
@@ -11,15 +11,13 @@
 --   p_dfs_strategy_id   Strategy identifier (nascar.dfs_strategies.id; resolve
 --                       by name with `SELECT id FROM nascar.dfs_strategies
 --                       WHERE name = 'DOUBLE_UP'`).
---   p_max_exposure_cap  Max fraction of returned lineups any single driver
---                       may appear in. Per-driver budget computed as
---                       CEIL(p_num_lineups * p_max_exposure_cap) (>= 1 when
---                       the cap is positive; 0 when the cap is 0, which
---                       returns an empty result set).
+--   p_min_driver_diff   Minimum number of different drivers required between
+--                       any accepted lineup pair during the strict phase.
+--                       The selector relaxes this threshold downward (N, N-1,
+--                       ... 1) when needed to fill `p_num_lineups`.
 --   p_num_lineups       Maximum lineups to return. The procedure may return
 --                       fewer if the persisted pool is too concentrated to
---                       satisfy the cap (no relaxation; call again with a
---                       higher cap if a fuller slate is required).
+--                       satisfy lineup-difference rules.
 --
 -- Result set columns (single result set; one row per (lineup, driver)):
 --   lineup_rank                INT UNSIGNED      Rank within result by objective_value DESC.
@@ -42,39 +40,28 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `dfs_lineups`(
     IN `p_race_id`          BIGINT UNSIGNED,
     IN `p_dfs_strategy_id`  BIGINT UNSIGNED,
-    IN `p_max_exposure_cap` DECIMAL(5,4),
+    IN `p_min_driver_diff`  INT UNSIGNED,
     IN `p_num_lineups`      INT UNSIGNED
 )
-    COMMENT 'Server-side greedy exposure-capped DFS lineup selection for one (race, strategy). Returns per-(lineup, driver) rows with projected and actual fantasy points.'
+    COMMENT 'Server-side greedy min-driver-diff DFS lineup selection for one (race, strategy). Returns per-(lineup, driver) rows with projected and actual fantasy points.'
 BEGIN
-    DECLARE v_done           INT DEFAULT 0;
-    DECLARE v_budget         INT UNSIGNED DEFAULT 0;
-    DECLARE v_accepted_count INT UNSIGNED DEFAULT 0;
-    DECLARE v_lineup_id      BIGINT UNSIGNED;
-    DECLARE v_conflict       INT UNSIGNED DEFAULT 0;
-
-    DECLARE cur_lineups CURSOR FOR
-        SELECT drl.id
-        FROM nascar.dfs_race_lineups drl
-        JOIN nascar.dfs_strategies_race_lineups dsrl
-          ON dsrl.dfs_race_lineup_id = drl.id
-         AND dsrl.deleted_at IS NULL
-        WHERE drl.race_id            = p_race_id
-          AND dsrl.dfs_strategy_id   = p_dfs_strategy_id
-          AND drl.deleted_at         IS NULL
-        ORDER BY drl.objective_value DESC, drl.id ASC;
-
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
+    DECLARE v_accepted_count     INT UNSIGNED DEFAULT 0;
+    DECLARE v_lineup_id          BIGINT UNSIGNED DEFAULT 0;
+    DECLARE v_lineup_size        INT UNSIGNED DEFAULT 0;
+    DECLARE v_conflict_overlap   INT UNSIGNED DEFAULT 0;
+    DECLARE v_candidate_seq      INT UNSIGNED DEFAULT 0;
+    DECLARE v_candidate_max      INT UNSIGNED DEFAULT 0;
+    DECLARE v_min_diff_current   INT UNSIGNED DEFAULT 1;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_accepted;
-        DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_exposure;
+        DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_candidates;
         RESIGNAL;
     END;
 
     DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_accepted;
-    DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_exposure;
+    DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_candidates;
 
     CREATE TEMPORARY TABLE _dfs_lineups_accepted (
         lineup_id   BIGINT UNSIGNED NOT NULL,
@@ -83,63 +70,99 @@ BEGIN
         KEY idx_rank (lineup_rank)
     ) ENGINE=Memory;
 
-    CREATE TEMPORARY TABLE _dfs_lineups_exposure (
-        car_driver_id BIGINT UNSIGNED NOT NULL,
-        cnt           INT UNSIGNED    NOT NULL DEFAULT 0,
-        PRIMARY KEY (car_driver_id)
+    CREATE TEMPORARY TABLE _dfs_lineups_candidates (
+        seq       INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        lineup_id BIGINT UNSIGNED NOT NULL,
+        PRIMARY KEY (seq),
+        UNIQUE KEY uq_lineup (lineup_id)
     ) ENGINE=Memory;
 
-    -- Mirrors `_per_driver_budget` in lineup_portfolio.py: cap<=0 admits nothing,
-    -- otherwise CEIL(target * cap) with a floor of 1.
-    IF p_max_exposure_cap IS NULL OR p_max_exposure_cap <= 0 THEN
-        SET v_budget = 0;
-    ELSE
-        SET v_budget = GREATEST(1, CEIL(p_num_lineups * p_max_exposure_cap));
-    END IF;
+    INSERT INTO _dfs_lineups_candidates (lineup_id)
+    SELECT drl.id
+    FROM nascar.dfs_race_lineups drl
+    JOIN nascar.dfs_strategies_race_lineups dsrl
+      ON dsrl.dfs_race_lineup_id = drl.id
+     AND dsrl.deleted_at IS NULL
+    WHERE drl.race_id          = p_race_id
+      AND dsrl.dfs_strategy_id = p_dfs_strategy_id
+      AND drl.deleted_at       IS NULL
+    ORDER BY drl.objective_value DESC, drl.id ASC;
 
-    -- Short-circuit when no lineups can be admitted (cap=0 or count=0).
-    -- The main loop's guard handles this path by exiting before any FETCH.
-    IF v_budget = 0 OR p_num_lineups = 0 THEN
+    SELECT COALESCE(MAX(seq), 0) INTO v_candidate_max
+    FROM _dfs_lineups_candidates;
+
+    IF p_num_lineups IS NULL OR p_num_lineups = 0 OR v_candidate_max = 0 THEN
         SET v_accepted_count = COALESCE(p_num_lineups, 0);
+    ELSE
+        SET v_min_diff_current = GREATEST(1, COALESCE(p_min_driver_diff, 1));
+
+        phase_loop: WHILE v_accepted_count < p_num_lineups AND v_min_diff_current >= 1 DO
+            SET v_candidate_seq = 1;
+
+            candidate_loop: WHILE v_candidate_seq <= v_candidate_max DO
+                IF v_accepted_count >= p_num_lineups THEN
+                    LEAVE candidate_loop;
+                END IF;
+
+                SELECT c.lineup_id INTO v_lineup_id
+                FROM _dfs_lineups_candidates c
+                WHERE c.seq = v_candidate_seq;
+                SET v_candidate_seq = v_candidate_seq + 1;
+
+                -- Already accepted in an earlier phase.
+                IF EXISTS (
+                    SELECT 1
+                    FROM _dfs_lineups_accepted a
+                    WHERE a.lineup_id = v_lineup_id
+                ) THEN
+                    ITERATE candidate_loop;
+                END IF;
+
+                -- Overlap conflict: reject when candidate differs by fewer than
+                -- v_min_diff_current drivers from any accepted lineup.
+                SELECT COUNT(*) INTO v_lineup_size
+                FROM nascar.dfs_race_lineups_car_drivers drlcd
+                WHERE drlcd.dfs_race_lineup_id = v_lineup_id
+                  AND drlcd.deleted_at         IS NULL;
+
+                IF v_lineup_size = 0 THEN
+                    ITERATE candidate_loop;
+                END IF;
+
+                SELECT COUNT(*) INTO v_conflict_overlap
+                FROM _dfs_lineups_accepted a
+                WHERE (
+                    SELECT COUNT(*)
+                    FROM nascar.dfs_race_lineups_car_drivers c1
+                    JOIN nascar.dfs_race_lineups_car_drivers c2
+                      ON c2.car_driver_id         = c1.car_driver_id
+                     AND c2.dfs_race_lineup_id    = a.lineup_id
+                     AND c2.deleted_at            IS NULL
+                    WHERE c1.dfs_race_lineup_id   = v_lineup_id
+                      AND c1.deleted_at           IS NULL
+                ) > (v_lineup_size - v_min_diff_current);
+
+                IF v_conflict_overlap > 0 THEN
+                    ITERATE candidate_loop;
+                END IF;
+
+                SET v_accepted_count = v_accepted_count + 1;
+
+                INSERT INTO _dfs_lineups_accepted (lineup_id, lineup_rank)
+                VALUES (v_lineup_id, v_accepted_count);
+            END WHILE;
+
+            IF v_accepted_count >= p_num_lineups THEN
+                LEAVE phase_loop;
+            END IF;
+
+            IF v_min_diff_current = 1 THEN
+                LEAVE phase_loop;
+            END IF;
+
+            SET v_min_diff_current = v_min_diff_current - 1;
+        END WHILE;
     END IF;
-
-    OPEN cur_lineups;
-    read_loop: LOOP
-        IF v_accepted_count >= p_num_lineups THEN
-            LEAVE read_loop;
-        END IF;
-
-        FETCH cur_lineups INTO v_lineup_id;
-        IF v_done = 1 THEN
-            LEAVE read_loop;
-        END IF;
-
-        -- A candidate lineup conflicts when any of its drivers has already
-        -- consumed the per-driver budget. COUNT(*) avoids the SELECT INTO
-        -- NOT FOUND condition that would otherwise trip our cursor handler.
-        SELECT COUNT(*) INTO v_conflict
-        FROM nascar.dfs_race_lineups_car_drivers drlcd
-        JOIN _dfs_lineups_exposure e
-          ON e.car_driver_id = drlcd.car_driver_id
-        WHERE drlcd.dfs_race_lineup_id = v_lineup_id
-          AND drlcd.deleted_at         IS NULL
-          AND e.cnt                    >= v_budget;
-
-        IF v_conflict = 0 THEN
-            SET v_accepted_count = v_accepted_count + 1;
-
-            INSERT INTO _dfs_lineups_accepted (lineup_id, lineup_rank)
-            VALUES (v_lineup_id, v_accepted_count);
-
-            INSERT INTO _dfs_lineups_exposure (car_driver_id, cnt)
-            SELECT drlcd.car_driver_id, 1
-            FROM nascar.dfs_race_lineups_car_drivers drlcd
-            WHERE drlcd.dfs_race_lineup_id = v_lineup_id
-              AND drlcd.deleted_at         IS NULL
-            ON DUPLICATE KEY UPDATE cnt = cnt + 1;
-        END IF;
-    END LOOP;
-    CLOSE cur_lineups;
 
     SELECT
         a.lineup_rank                                AS lineup_rank,
@@ -188,6 +211,6 @@ BEGIN
     ORDER BY a.lineup_rank ASC, driver_rank ASC;
 
     DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_accepted;
-    DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_exposure;
+    DROP TEMPORARY TABLE IF EXISTS _dfs_lineups_candidates;
 END$$
 DELIMITER ;

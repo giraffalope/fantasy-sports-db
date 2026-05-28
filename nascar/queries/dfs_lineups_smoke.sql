@@ -9,7 +9,9 @@
 -- Parameters (positional):
 --   1) p_race_id          BIGINT UNSIGNED
 --   2) p_dfs_strategy_id  BIGINT UNSIGNED  (resolve by name; see below)
---   3) p_max_exposure_cap DECIMAL(5,4)     (e.g. 0.35 -> max ceil(N*0.35) per driver)
+--   3) p_min_driver_diff  INT UNSIGNED      (minimum different drivers required
+--                                           between accepted lineup pairs; selector
+--                                           relaxes downward to fill N as needed)
 --   4) p_num_lineups      INT UNSIGNED
 --
 -- Result set (single result set, one row per (lineup, driver)):
@@ -42,12 +44,12 @@ ORDER BY name;
 -- 3) Call the procedure. Set the race_id and strategy_id from steps (1) and (2).
 SET @race_id          = <PASTE_RACE_ID>;
 SET @strategy_id      = (SELECT id FROM nascar.dfs_strategies WHERE name = 'HIGH_RISK_REWARD' LIMIT 1);
-SET @max_exposure_cap = 0.35;
+SET @min_driver_diff  = 2;
 SET @num_lineups      = 20;
 
-CALL nascar.dfs_lineups(@race_id, @strategy_id, @max_exposure_cap, @num_lineups);
+CALL nascar.dfs_lineups(@race_id, @strategy_id, @min_driver_diff, @num_lineups);
 
--- 4) Optional: verify exposure per driver matches the cap after the call.
+-- 4) Optional: verify pairwise lineup overlap and resulting per-driver frequency.
 --    Re-run the proc into a temp table for offline analysis:
 --      DROP TEMPORARY TABLE IF EXISTS _smoke_lineups;
 --      CREATE TEMPORARY TABLE _smoke_lineups (
