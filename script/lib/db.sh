@@ -70,6 +70,24 @@ db_query_stdin() {
     db_mariadb_base
 }
 
+db_exec_file_with_options() {
+    _file="$1"
+    shift
+    docker exec -i "$DB_CONTAINER_NAME" mariadb \
+        -u"$DB_USER" \
+        -p"$DB_PASSWORD" \
+        "$@" \
+        "$DB_NAME" <"$_file"
+}
+
+db_exec_stream_with_options() {
+    docker exec -i "$DB_CONTAINER_NAME" mariadb \
+        -u"$DB_USER" \
+        -p"$DB_PASSWORD" \
+        "$@" \
+        "$DB_NAME"
+}
+
 db_ensure_schema_migrations_table() {
     db_exec_sql "CREATE TABLE IF NOT EXISTS nascar.schema_migrations (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

@@ -6,10 +6,10 @@ set -e
 BASEDIR="$(dirname "$0")/.."
 cd "${BASEDIR}"
 
-if [ ! -f nascar/seed/9000-load_nascar_database_snapshot.sql.gz ]; then
-  echo "Seed snapshot missing; running ./script/sync-seed-snapshot ..."
-  ./script/sync-seed-snapshot
-fi
+# if [ ! -f nascar/seed/9000-load_nascar_database_snapshot.sql.gz ]; then
+#   echo "Seed snapshot missing; running ./script/sync-seed-snapshot ..."
+#   ./script/sync-seed-snapshot
+# fi
 
 # Build the Docker image
 echo "Building Docker image..."

@@ -7,6 +7,7 @@ MariaDB runs these files from `/docker-entrypoint-initdb.d/` **after** all `nasc
 | `9000-load_nascar_database_snapshot.sql.gz` | Full `nascar` data dump (INSERT-only). Primary bootstrap dataset. |
 | `9001-insert_dfs_seed.sql` | Idempotent DraftKings `dfs` row (`id = 1`). |
 | `9002-insert_dfs_scoring_rules_seed.sql` | Idempotent DraftKings Cup rules (`cup_default`). |
+| `9003-insert_dfs_strategies_seed.sql` | Idempotent required `dfs_strategies` rows (`DOUBLE_UP`, `HIGH_RISK_REWARD`) consumed by the DK lineup generator DAG. |
 
 The snapshot is large (~600MB compressed) and is not committed to git. Refresh it before `./script/build`:
 

@@ -1,0 +1,119 @@
+#!/bin/sh
+# Bulk-load a .sql or .sql.gz dump into the running fantasy-sports-db container.
+set -e
+[ -z "${DEBUG}" ] || set -x
+
+BASEDIR="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=script/lib/db.sh
+. "$BASEDIR/script/lib/db.sh"
+
+usage() {
+    cat <<'EOF'
+Bulk-load a SQL dump into the local MariaDB container (./script/server must be running).
+
+Usage:
+  ./script/import path/to/dump.sql
+  ./script/import path/to/dump.sql.gz
+  ./script/import --force path/to/dump.sql.gz
+  ./script/import path/to/dump.sql.gz --force
+
+Accepts plain .sql or gzip-compressed .sql.gz; .sql.gz is decompressed on the fly.
+Does NOT touch nascar.schema_migrations - use ./script/migrate for ledger-tracked
+migrations. Use ./script/query for ad-hoc SQL.
+
+Options:
+  -f, --force         Pass --force to mariadb so it continues past SQL errors
+  -h, --help          Show this help
+
+Environment (from .env or shell):
+  DB_CONTAINER_NAME   default: fantasy-sports-db
+  DB_NAME             default: nascar
+  DB_USER / DB_PASSWORD
+EOF
+}
+
+force_flag=""
+import_path=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -f | --force)
+            force_flag="--force"
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            if [ -n "$import_path" ] && [ -n "${1:-}" ]; then
+                echo "Only one file path is allowed." >&2
+                exit 1
+            fi
+            if [ -n "${1:-}" ]; then
+                import_path="$1"
+                shift
+            fi
+            break
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            if [ -n "$import_path" ]; then
+                echo "Only one file path is allowed." >&2
+                exit 1
+            fi
+            import_path="$1"
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$import_path" ]; then
+    echo "Missing file path." >&2
+    usage >&2
+    exit 1
+fi
+
+if [ ! -f "$import_path" ]; then
+    echo "File not found: $import_path" >&2
+    exit 1
+fi
+
+case "$import_path" in
+    *.sql)
+        mode=plain
+        ;;
+    *.sql.gz)
+        mode=gz
+        ;;
+    *)
+        echo "Unsupported extension (expected .sql or .sql.gz): $import_path" >&2
+        exit 1
+        ;;
+esac
+
+db_load_env
+db_require_container
+
+echo "Importing $import_path into $DB_NAME (container=$DB_CONTAINER_NAME${force_flag:+ --force})..."
+
+if [ "$mode" = "plain" ]; then
+    if [ -n "$force_flag" ]; then
+        db_exec_file_with_options "$import_path" "$force_flag"
+    else
+        db_exec_file_with_options "$import_path"
+    fi
+else
+    if [ -n "$force_flag" ]; then
+        gunzip -c "$import_path" | db_exec_stream_with_options "$force_flag"
+    else
+        gunzip -c "$import_path" | db_exec_stream_with_options
+    fi
+fi
+
+echo "Import complete: $import_path"

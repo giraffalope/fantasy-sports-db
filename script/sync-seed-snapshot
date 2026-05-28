@@ -8,7 +8,7 @@ BASEDIR="$(dirname "$0")/.."
 cd "${BASEDIR}"
 
 DEST="nascar/seed/9000-load_nascar_database_snapshot.sql.gz"
-DEFAULT_SRC="${BASEDIR}/../fantasy-sports-airflow/db/backups/20260525T031712Z.sql.gz"
+DEFAULT_SRC="${DEST}"
 SRC="${1:-${SEED_SNAPSHOT_SRC:-$DEFAULT_SRC}}"
 
 if [ ! -f "$SRC" ]; then
