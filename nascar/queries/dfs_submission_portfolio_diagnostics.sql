@@ -1,0 +1,20 @@
+-- Diagnostics for a submitted DFS slate (exposure + overlap).
+-- Run after selecting lineups via Python submission_portfolio or CALL dfs_lineups.
+--
+-- Example Double Up submission (tight exposure, min_diff=3):
+--   SET @race_id = 674;
+--   SET @strategy_id = (SELECT id FROM nascar.dfs_strategies WHERE name = 'DOUBLE_UP');
+--   SET @num = 10;
+--   CALL nascar.dfs_lineups(@race_id, @strategy_id, 3, @num, 0.25);
+--
+-- Example High Risk Reward (looser exposure, min_diff=2, higher bar in Python):
+--   CALL nascar.dfs_lineups(@race_id, @hrr_id, 2, @num, 0.35);
+
+-- Per-driver exposure in the returned slate (paste lineup ids from proc result).
+-- SELECT drlcd.car_driver_id,
+--        COUNT(DISTINCT drlcd.dfs_race_lineup_id) AS lineup_appearances
+-- FROM nascar.dfs_race_lineups_car_drivers drlcd
+-- WHERE drlcd.dfs_race_lineup_id IN (<lineup_ids>)
+--   AND drlcd.deleted_at IS NULL
+-- GROUP BY drlcd.car_driver_id
+-- ORDER BY lineup_appearances DESC;

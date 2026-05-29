@@ -7,12 +7,14 @@
 -- re-implementing the algorithm in app code.
 --
 -- Parameters (positional):
---   1) p_race_id          BIGINT UNSIGNED
---   2) p_dfs_strategy_id  BIGINT UNSIGNED  (resolve by name; see below)
---   3) p_min_driver_diff  INT UNSIGNED      (minimum different drivers required
---                                           between accepted lineup pairs; selector
---                                           relaxes downward to fill N as needed)
---   4) p_num_lineups      INT UNSIGNED
+--   1) p_race_id                  BIGINT UNSIGNED
+--   2) p_dfs_strategy_id          BIGINT UNSIGNED
+--   3) p_min_driver_diff          INT UNSIGNED
+--   4) p_num_lineups              INT UNSIGNED
+--   5) p_max_driver_exposure_cap  DECIMAL(5,4)  NULL = no cap; 0.25 for Double Up
+--
+-- Prefer Python submission selector for correlation + cash-count objective:
+--   include.nascar.dfs.submission_portfolio.select_portfolio_for_submission
 --
 -- Result set (single result set, one row per (lineup, driver)):
 --   lineup_rank, dfs_race_lineup_id, lineup_projected_points,
@@ -43,11 +45,18 @@ ORDER BY name;
 
 -- 3) Call the procedure. Set the race_id and strategy_id from steps (1) and (2).
 SET @race_id          = <PASTE_RACE_ID>;
-SET @strategy_id      = (SELECT id FROM nascar.dfs_strategies WHERE name = 'HIGH_RISK_REWARD' LIMIT 1);
-SET @min_driver_diff  = 2;
-SET @num_lineups      = 20;
+SET @strategy_id      = (SELECT id FROM nascar.dfs_strategies WHERE name = 'DOUBLE_UP' LIMIT 1);
+SET @min_driver_diff  = 3;
+SET @num_lineups      = 10;
+SET @exposure_cap     = 0.25;
 
-CALL nascar.dfs_lineups(@race_id, @strategy_id, @min_driver_diff, @num_lineups);
+CALL nascar.dfs_lineups(
+    @race_id,
+    @strategy_id,
+    @min_driver_diff,
+    @num_lineups,
+    @exposure_cap
+);
 
 -- 4) Optional: verify pairwise lineup overlap and resulting per-driver frequency.
 --    Re-run the proc into a temp table for offline analysis:
